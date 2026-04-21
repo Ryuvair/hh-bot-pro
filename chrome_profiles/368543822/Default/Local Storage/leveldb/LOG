@@ -1,0 +1,42 @@
+2026/04/21-19:20:38.882 74f4 Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/21-19:20:38.887 74f4 Recovering log #218
+2026/04/21-19:20:38.892 74f4 Reusing old log C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\Local Storage\leveldb/000218.log 
+2026/04/21-19:24:46.869 744c Level-0 table #222: started
+2026/04/21-19:24:46.886 744c Level-0 table #222: 19785 bytes OK
+2026/04/21-19:24:46.889 744c Delete type=0 #218
+2026/04/21-19:39:46.877 744c Level-0 table #224: started
+2026/04/21-19:39:46.882 744c Level-0 table #224: 15681 bytes OK
+2026/04/21-19:39:46.884 744c Delete type=0 #221
+2026/04/21-19:39:46.885 744c Compacting 4@0 + 1@1 files
+2026/04/21-19:39:46.893 744c Generated table #225@0: 2025 keys, 427931 bytes
+2026/04/21-19:39:46.893 744c Compacted 4@0 + 1@1 files => 427931 bytes
+2026/04/21-19:39:46.894 744c compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/21-19:39:46.895 744c Delete type=2 #214
+2026/04/21-19:39:46.895 744c Delete type=2 #217
+2026/04/21-19:39:46.895 744c Delete type=2 #219
+2026/04/21-19:39:46.895 744c Delete type=2 #222
+2026/04/21-19:39:46.895 744c Delete type=2 #224
+2026/04/21-19:50:46.878 744c Level-0 table #227: started
+2026/04/21-19:50:46.883 744c Level-0 table #227: 16927 bytes OK
+2026/04/21-19:50:46.884 744c Delete type=0 #223
+2026/04/21-20:01:44.686 744c Level-0 table #229: started
+2026/04/21-20:01:44.690 744c Level-0 table #229: 17461 bytes OK
+2026/04/21-20:01:44.692 744c Delete type=0 #226
+2026/04/21-20:09:44.682 744c Level-0 table #231: started
+2026/04/21-20:09:44.701 744c Level-0 table #231: 15753 bytes OK
+2026/04/21-20:09:44.702 744c Delete type=0 #228
+2026/04/21-20:20:46.874 744c Level-0 table #233: started
+2026/04/21-20:20:46.879 744c Level-0 table #233: 19312 bytes OK
+2026/04/21-20:20:46.880 744c Delete type=0 #230
+2026/04/21-20:20:46.881 744c Compacting 4@0 + 1@1 files
+2026/04/21-20:20:46.888 744c Generated table #234@0: 2129 keys, 431505 bytes
+2026/04/21-20:20:46.888 744c Compacted 4@0 + 1@1 files => 431505 bytes
+2026/04/21-20:20:46.889 744c compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/21-20:20:46.889 744c Delete type=2 #225
+2026/04/21-20:20:46.889 744c Delete type=2 #227
+2026/04/21-20:20:46.889 744c Delete type=2 #229
+2026/04/21-20:20:46.890 744c Delete type=2 #231
+2026/04/21-20:20:46.890 744c Delete type=2 #233
+2026/04/21-20:32:44.689 744c Level-0 table #236: started
+2026/04/21-20:32:44.704 744c Level-0 table #236: 22657 bytes OK
+2026/04/21-20:32:44.715 744c Delete type=0 #232

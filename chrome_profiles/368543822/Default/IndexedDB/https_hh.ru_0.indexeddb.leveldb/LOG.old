@@ -1,0 +1,5 @@
+2026/04/21-20:32:42.801 6c10 Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\IndexedDB\https_hh.ru_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/21-20:32:42.802 6c10 Recovering log #3460
+2026/04/21-20:32:42.802 6c10 Reusing old log C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\IndexedDB\https_hh.ru_0.indexeddb.leveldb/003460.log 
+2026/04/21-20:32:42.802 6c10 Delete type=2 #3458
+2026/04/21-20:32:42.861 51bc Manual compaction at level-0 from ' \xa6\x03\x00\x00\x00' @ 72057594037927935 : 1 .. ' \xa7\x03\x00\x00\x00' @ 0 : 0; will stop at (end)

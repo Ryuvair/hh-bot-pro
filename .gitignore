@@ -1,0 +1,6 @@
+.env 
+chrome_profile/ 
+data/ 
+logs/ 
+!logs/all.log 
+*.pyc 

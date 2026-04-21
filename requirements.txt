@@ -1,0 +1,12 @@
+playwright==1.48.0
+python-dotenv==1.0.1
+openai==1.54.0
+gigachat==0.1.9
+python-telegram-bot==20.7
+playwright==1.48.0
+python-dotenv==1.0.1
+openai==1.54.0
+gigachat==0.1.9
+python-telegram-bot==20.7
+pysocks==1.7.1
+aiosqlite==0.20.0

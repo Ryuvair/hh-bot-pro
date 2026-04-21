@@ -1,0 +1,136 @@
+Metadata-Version: 2.1
+Name: gigachat
+Version: 0.1.9
+Summary: GigaChat. Python-library for GigaChain and LangChain
+Home-page: https://github.com/ai-forever/gigachat
+License: MIT
+Author: Konstantin Krestnikov
+Author-email: rai220@gmail.com
+Requires-Python: >=3.8,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Dist: httpx (<1)
+Requires-Dist: pydantic (>=1,<3)
+Project-URL: Repository, https://github.com/ai-forever/gigachat
+Description-Content-Type: text/markdown
+
+# GigaChat. Python-библиотека для GigaChain
+
+Библиотека Python, позволяющая [GigaChain](https://github.com/ai-forever/gigachain) обращаться к GigaChat — нейросетевой модели, которая умеет вести диалог, писать код, создавать тексты и картинки по запросу.
+
+Обмен данными с сервисом обеспечивается с помощью GigaChat API. О том как получить доступ к API читайте в [официальной документации](https://developers.sber.ru/docs/ru/gigachat/api/integration).
+
+Библиотека поддерживает обработку [потоковой передачи токенов](https://developers.sber.ru/docs/ru/gigachat/api/response-token-streaming), а также работу в синхронном или в асинхронном режиме.
+
+## Установка
+
+Библиотеку можно установить с помощью pip:
+
+```sh
+pip install gigachat
+```
+## Работа с GigaChat
+
+Перед использованием модуля:
+
+1. [Подключите проект GigaChat API](https://developers.sber.ru/docs/ru/gigachat/api/integration).
+2. В личном кабинете нажмите кнопку **Сгенерировать новый Client Secret**.
+
+   Откроется окно **Новый Client Secret**.
+
+3. В открывшемся окне, скопируйте и сохраните токен, указанный в поле **Авторизационные данные**.
+
+   > [!WARNING]
+   > Не закрывайте окно, пока не сохраните токен. В противном случае его нужно будет сгенерировать заново.
+
+Пример показывает как импортировать библиотеку в [GigaChain](https://github.com/ai-forever/gigachain) и использовать ее для обращения к GigaChat:
+
+```py
+from gigachat import GigaChat
+
+# Используйте токен, полученный в личном кабинете из поля Авторизационные данные
+with GigaChat(credentials=..., verify_ssl_certs=False) as giga:
+    response = giga.chat("Какие факторы влияют на стоимость страховки на дом?")
+    print(response.choices[0].message.content)
+```
+
+[Больше примеров](https://github.com/ai-forever/gigachat/blob/dev/examples/README.md).
+
+## Способы авторизации
+
+Авторизация с помощью токена (в личном кабинете из поля Авторизационные данные):
+
+```py
+giga = GigaChat(credentials=...)
+
+# Личное пространство
+giga = GigaChat(credentials=..., scope="GIGACHAT_API_PERS")
+
+# Корпоративное пространство
+giga = GigaChat(credentials=..., scope="GIGACHAT_API_CORP")
+```
+
+Авторизация с помощью логина и пароля:
+
+```py
+giga = GigaChat(
+    base_url="https://gigachat.devices.sberbank.ru/api/v1",
+    user=...,
+    password=...,
+)
+```
+
+Взаимная аутентификация по протоколу TLS (mTLS):
+
+```py
+giga = GigaChat(
+    base_url="https://gigachat.devices.sberbank.ru/api/v1",
+    ca_bundle_file="certs/ca.pem",  # chain_pem.txt
+    cert_file="certs/tls.pem",  # published_pem.txt
+    key_file="certs/tls.key",
+    key_file_password="123456",
+)
+```
+
+## Дополнительные настройки
+
+Отключение проверки сертификатов:
+
+```py
+giga = GigaChat(verify_ssl_certs=False)
+```
+
+> [!WARNING]
+> Отключение проверки сертификатов снижает безопасность обмена данными.
+
+
+Установка корневого сертификата "Минцифры России":
+```bash
+curl -k "https://gu-st.ru/content/Other/doc/russian_trusted_root_ca.cer" -w "\n" >> $(python -m certifi)
+```
+
+### Настройки в переменных окружения
+
+Чтобы задать настройки с помощью переменных окружения, используйте префикс `GIGACHAT_`.
+
+Авторизация с помощью токена и отключение проверки сертификатов:
+
+```sh
+export GIGACHAT_CREDENTIALS=...
+export GIGACHAT_SCOPE=...
+export GIGACHAT_VERIFY_SSL_CERTS=False
+```
+
+Авторизация с помощью логина и пароля:
+
+```sh
+export GIGACHAT_BASE_URL=https://gigachat.devices.sberbank.ru/api/v1
+export GIGACHAT_USER=...
+export GIGACHAT_PASSWORD=...
+```
+

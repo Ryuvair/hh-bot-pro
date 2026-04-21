@@ -1,0 +1,9 @@
+2026/04/21-16:17:51.324 64f0 Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_pro\chrome_profiles\368543822\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/21-16:17:51.333 64f0 Recovering log #212
+2026/04/21-16:17:51.339 64f0 Reusing old log C:\Users\semtv\Desktop\hh_bot_pro\chrome_profiles\368543822\Default\Local Storage\leveldb/000212.log 
+2026/04/21-16:21:58.707 2218 Level-0 table #217: started
+2026/04/21-16:21:58.730 2218 Level-0 table #217: 19358 bytes OK
+2026/04/21-16:21:58.733 2218 Delete type=0 #212
+2026/04/21-16:28:58.716 2218 Level-0 table #219: started
+2026/04/21-16:28:58.742 2218 Level-0 table #219: 21568 bytes OK
+2026/04/21-16:28:58.745 2218 Delete type=0 #216
