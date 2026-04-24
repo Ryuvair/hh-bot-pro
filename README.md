@@ -40,42 +40,39 @@
 
 ## 📁 Структура проекта
 
-\`\`\`
-hh_bot_pro/
-├── bot/                    # Telegram-интерфейс
-│   ├── handlers/           # Обработчики команд и кнопок
-│   │   ├── callbacks.py
-│   │   ├── commands.py
-│   │   └── messages.py
-│   ├── keyboards/          # Клавиатуры и кнопки
-│   │   └── main.py
-│   └── utils/              # Вспомогательные функции
-│       └── helpers.py
-├── config/                 # Настройки и конфигурации
-│   └── settings.py
-├── core/                   # Ядро системы
-│   ├── browser.py          # Управление Playwright
-│   ├── ai_client.py        # Интеграция с DeepSeek
-│   ├── async_executor.py   # Асинхронный исполнитель
-│   ├── prompts.py          # Промпты для AI-агентов
-│   └── session_manager.py  # Менеджер сессий пользователей
-├── services/               # Бизнес-логика
-│   ├── hh_parser.py        # Парсер вакансий hh.ru
-│   ├── applier.py          # Отправка откликов
-│   ├── letter_generator.py # Генерация писем
-│   ├── alina_validator.py  # AI-валидация писем
-│   ├── svetlana_validator.py # Проверка русского языка
-│   ├── resume_improver.py  # Анализ и улучшение резюме
-│   └── revaz_agent.py      # Технический скрининг вакансий
-├── storage/                # Работа с БД
-│   ├── database.py
-│   └── history_repository.py
-├── test/                   # Тесты
-│   ├── login_once.py
-│   ├── test_browser.py
-│   ├── test_full.py
-│   └── test_setup.py
-├── main.py                 # Точка входа
-├── README.md               # Этот файл
-└── requirements.txt        # Зависимости
-\`\`\`
+- **bot/** - Telegram-интерфейс
+  - **handlers/** - Обработчики команд и кнопок
+    - callbacks.py
+    - commands.py
+    - messages.py
+  - **keyboards/** - Клавиатуры и кнопки
+    - main.py
+  - **utils/** - Вспомогательные функции
+    - helpers.py
+- **config/** - Настройки и конфигурации
+  - settings.py
+- **core/** - Ядро системы
+  - browser.py (Управление Playwright)
+  - ai_client.py (Интеграция с DeepSeek)
+  - async_executor.py (Асинхронный исполнитель)
+  - prompts.py (Промпты для AI-агентов)
+  - session_manager.py (Менеджер сессий пользователей)
+- **services/** - Бизнес-логика
+  - hh_parser.py (Парсер вакансий hh.ru)
+  - applier.py (Отправка откликов)
+  - letter_generator.py (Генерация писем)
+  - alina_validator.py (AI-валидация писем)
+  - svetlana_validator.py (Проверка русского языка)
+  - resume_improver.py (Анализ и улучшение резюме)
+  - revaz_agent.py (Технический скрининг вакансий)
+- **storage/** - Работа с БД
+  - database.py
+  - history_repository.py
+- **test/** - Тесты
+  - login_once.py
+  - test_browser.py
+  - test_full.py
+  - test_setup.py
+- main.py (Точка входа)
+- README.md (Этот файл)
+- requirements.txt (Зависимости)
