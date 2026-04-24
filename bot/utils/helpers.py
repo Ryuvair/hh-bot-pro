@@ -14,7 +14,7 @@ pending_vacancies = {}           # vac_id -> контекст для ручно�
 manual_decisions = {}            # vac_id -> решение (apply/skip/regen)
 
 # Прокси
-PROXY_URL = "socks5://ckeznX:Thcg9q@85.195.81.147:13456"
+PROXY_URL = "socks5://qWshEM:9qau5X@85.195.81.131:11412"
 
 # Функции запуска/остановки сессий (устанавливаются из main.py)
 start_session_func = None

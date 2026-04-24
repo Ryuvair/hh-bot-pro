@@ -1,15 +1,6 @@
-2026/04/21-19:20:44.697 74f4 Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\Session Storage/MANIFEST-000001
-2026/04/21-19:20:44.698 74f4 Recovering log #27
-2026/04/21-19:20:44.703 74f4 Reusing old log C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\Session Storage/000027.log 
-2026/04/21-19:21:46.879 74f4 Level-0 table #31: started
-2026/04/21-19:21:46.896 74f4 Level-0 table #31: 10817 bytes OK
-2026/04/21-19:21:46.897 74f4 Delete type=0 #27
-2026/04/21-19:21:46.898 74f4 Compacting 4@0 + 1@1 files
-2026/04/21-19:21:46.903 74f4 Generated table #32@0: 231 keys, 9759 bytes
-2026/04/21-19:21:46.903 74f4 Compacted 4@0 + 1@1 files => 9759 bytes
-2026/04/21-19:21:46.904 74f4 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/04/21-19:21:46.905 74f4 Delete type=2 #21
-2026/04/21-19:21:46.905 74f4 Delete type=2 #23
-2026/04/21-19:21:46.905 74f4 Delete type=2 #25
-2026/04/21-19:21:46.905 74f4 Delete type=2 #28
-2026/04/21-19:21:46.905 74f4 Delete type=2 #31
+2026/04/23-21:46:37.356 25ac Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\Session Storage/MANIFEST-000001
+2026/04/23-21:46:37.356 25ac Recovering log #46
+2026/04/23-21:46:37.360 25ac Reusing old log C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\368543822\Default\Session Storage/000046.log 
+2026/04/23-22:26:37.369 1a1c Level-0 table #50: started
+2026/04/23-22:26:37.373 1a1c Level-0 table #50: 10121 bytes OK
+2026/04/23-22:26:37.375 1a1c Delete type=0 #46
