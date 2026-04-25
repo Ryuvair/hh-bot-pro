@@ -1,6 +1,21 @@
-.env 
-chrome_profile/ 
-data/ 
-logs/ 
-!logs/all.log 
-*.pyc 
+.env
+.venv/
+
+chrome_profile/
+chrome_profiles/
+
+data/
+logs/
+
+# dumps / exports (may contain secrets)
+code_dump.txt
+code_dump.md
+
+__pycache__/
+*.pyc
+
+# local DB / logs
+*.log
+*.sqlite
+*.sqlite3
+*.db

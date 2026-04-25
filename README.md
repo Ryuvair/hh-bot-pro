@@ -76,3 +76,28 @@
 - main.py (Точка входа)
 - README.md (Этот файл)
 - requirements.txt (Зависимости)
+
+---
+
+## ⚙️ Быстрый старт (локально)
+
+1) Установка зависимостей:
+
+```bash
+pip install -r requirements.txt
+python -m playwright install
+```
+
+2) Создай `.env` по примеру `.env.example` и заполни минимум:
+
+- `TELEGRAM_BOT_TOKEN`
+- `DEEPSEEK_API_KEY` (или `GIGACHAT_CREDENTIALS` как fallback)
+- `PROXY_URL` (опционально)
+
+3) Запуск:
+
+```bash
+python main.py
+```
+
+> Профили Chrome создаются автоматически в `chrome_profiles/<telegram_id>/` и не должны попадать в git.

@@ -3,19 +3,22 @@ import os
 from pathlib import Path
 
 output_file = "code_dump.txt"
-exclude_dirs = {".venv", "__pycache__", ".git", "data", "logs", "chrome_profile"}
+exclude_dirs = {".venv", "__pycache__", ".git", "data", "logs", "chrome_profile", "chrome_profiles"}
 exclude_ext = {".pyc", ".db", ".log"}
+exclude_files = {".env", ".env.example"}
 
 with open(output_file, "w", encoding="utf-8") as out:
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
+            if file in exclude_files:
+                continue
             if Path(file).suffix in exclude_ext:
                 continue
             if file == output_file:
                 continue
             path = Path(root) / file
-            if path.suffix == ".py" or file in ["requirements.txt", ".env.example"]:
+            if path.suffix == ".py" or file in ["requirements.txt"]:
                 out.write(f"\n{'='*60}\n{path}\n{'='*60}\n")
                 try:
                     with open(path, "r", encoding="utf-8") as f:

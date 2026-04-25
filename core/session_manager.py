@@ -135,7 +135,7 @@ class SessionManager:
                         if manual:
                             logger.info(f"🟡 Ручной режим: отправка карточки для {vac['title'][:40]}")
                             tb_helpers.manual_decisions.pop(vac['id'], None)
-                            tb_helpers.user_decision_events[telegram_id].clear()
+                            tb_helpers.get_user_decision_event(telegram_id).clear()
 
                             if tb_helpers.telegram_loop:
                                 asyncio.run_coroutine_threadsafe(
@@ -148,7 +148,7 @@ class SessionManager:
 
                             decision = None
                             start_wait = time.time()
-                            event = tb_helpers.user_decision_events[telegram_id]
+                            event = tb_helpers.get_user_decision_event(telegram_id)
                             while time.time() - start_wait < 120:
                                 if event.wait(timeout=1):
                                     decision = tb_helpers.manual_decisions.get(vac['id'])
@@ -209,7 +209,7 @@ class SessionManager:
                         else:
                             add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', letter, error="отправка не удалась")
                     except Exception as e:
-                        logger.error(f"Ошибка: {e}")
+                        logger.exception(f"Ошибка при вакансии '{vac.get('id', '?')}': {e}")
                         add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', error=str(e))
                         continue
 

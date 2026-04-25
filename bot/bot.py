@@ -18,13 +18,10 @@ def run_telegram_bot():
     tb_helpers.telegram_loop = loop
 
     try:
-        application = (
-            Application.builder()
-            .token(TELEGRAM_BOT_TOKEN)
-            .proxy_url(tb_helpers.PROXY_URL)
-            .get_updates_proxy_url(tb_helpers.PROXY_URL)
-            .build()
-        )
+        builder = Application.builder().token(TELEGRAM_BOT_TOKEN)
+        if tb_helpers.PROXY_URL:
+            builder = builder.proxy_url(tb_helpers.PROXY_URL).get_updates_proxy_url(tb_helpers.PROXY_URL)
+        application = builder.build()
         tb_helpers.telegram_bot = application.bot
         tb_helpers.loop_ready.set()
     except Exception as e:
@@ -46,5 +43,8 @@ def run_telegram_bot():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_all_text))
 
-    logger.info(f"✅ Telegram бот запущен через прокси {tb_helpers.PROXY_URL}")
+    if tb_helpers.PROXY_URL:
+        logger.info("✅ Telegram бот запущен (с прокси)")
+    else:
+        logger.info("✅ Telegram бот запущен (без прокси)")
     loop.run_until_complete(application.run_polling(drop_pending_updates=True))
