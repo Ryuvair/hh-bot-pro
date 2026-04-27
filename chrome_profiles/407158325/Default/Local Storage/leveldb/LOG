@@ -1,0 +1,33 @@
+2026/04/27-16:25:02.850 8e08 Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\407158325\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/27-16:25:02.855 8e08 Recovering log #15
+2026/04/27-16:25:02.857 8e08 Reusing old log C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\407158325\Default\Local Storage\leveldb/000015.log 
+2026/04/27-16:30:08.607 2728 Level-0 table #20: started
+2026/04/27-16:30:08.611 2728 Level-0 table #20: 16690 bytes OK
+2026/04/27-16:30:08.613 2728 Delete type=0 #15
+2026/04/27-17:00:48.610 2728 Level-0 table #22: started
+2026/04/27-17:00:48.616 2728 Level-0 table #22: 20306 bytes OK
+2026/04/27-17:00:48.618 2728 Delete type=0 #19
+2026/04/27-17:09:09.358 2728 Level-0 table #24: started
+2026/04/27-17:09:09.362 2728 Level-0 table #24: 20931 bytes OK
+2026/04/27-17:09:09.363 2728 Delete type=0 #21
+2026/04/27-17:17:09.363 2728 Level-0 table #26: started
+2026/04/27-17:17:09.374 2728 Level-0 table #26: 21031 bytes OK
+2026/04/27-17:17:09.391 2728 Delete type=0 #23
+2026/04/27-17:17:09.392 2728 Compacting 4@0 + 1@1 files
+2026/04/27-17:17:09.404 2728 Generated table #27@0: 491 keys, 13001 bytes
+2026/04/27-17:17:09.405 2728 Compacted 4@0 + 1@1 files => 13001 bytes
+2026/04/27-17:17:09.406 2728 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/27-17:17:09.407 2728 Delete type=2 #17
+2026/04/27-17:17:09.407 2728 Delete type=2 #20
+2026/04/27-17:17:09.408 2728 Delete type=2 #22
+2026/04/27-17:17:09.408 2728 Delete type=2 #24
+2026/04/27-17:17:09.408 2728 Delete type=2 #26
+2026/04/27-17:25:08.617 2728 Level-0 table #29: started
+2026/04/27-17:25:08.633 2728 Level-0 table #29: 19256 bytes OK
+2026/04/27-17:25:08.637 2728 Delete type=0 #25
+2026/04/27-17:31:09.368 2728 Level-0 table #31: started
+2026/04/27-17:31:09.393 2728 Level-0 table #31: 20846 bytes OK
+2026/04/27-17:31:09.396 2728 Delete type=0 #28
+2026/04/27-17:39:08.613 2728 Level-0 table #33: started
+2026/04/27-17:39:08.623 2728 Level-0 table #33: 19462 bytes OK
+2026/04/27-17:39:08.640 2728 Delete type=0 #30

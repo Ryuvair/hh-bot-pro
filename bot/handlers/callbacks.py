@@ -30,7 +30,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not session_active:
             job_title = settings.get('job_title')
             limit = settings.get('limit')
-
             if job_title:
                 keyboard = get_confirm_job_keyboard(job_title)
                 await query.edit_message_text(
@@ -48,17 +47,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if tb_helpers.stop_session_func:
                 tb_helpers.stop_session_func(user_id)
                 session_active = False
-                mode_text = "🟢 Авто" if not manual_mode else "🟡 Ручной"
+                mode_text = "🟡 Ручной" if manual_mode else "🟢 Авто"
                 start_stop_text = "▶️ Запустить отклики"
                 keyboard = get_main_keyboard(start_stop_text, mode_text)
                 text = (
                     "🤖 *HH Bot Pro*\n\n"
                     f"Статус: 🔴 Остановлен\n"
-                    f"Режим: {'🟢 Автоматический' if not manual_mode else '🟡 Ручной (подтверждение)'}\n\n"
+                    f"Режим: {'🟡 Ручной' if manual_mode else '🟢 Авто'}\n\n"
                     "Выбери действие:"
                 )
                 await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
-                logger.info(f"Сессия пользователя {user_id} остановлена через Telegram")
                 context.user_data['state'] = None
 
     elif data == "toggle_mode":
@@ -68,13 +66,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             settings['manual_mode'] = manual_mode
             await db.AsyncDatabase.save_user(user_id, settings=settings)
         session_active = tb_helpers.get_user_session_active(user_id)
-        mode_text = "🟢 Авто" if not manual_mode else "🟡 Ручной"
+        mode_text = "🟡 Ручной" if manual_mode else "🟢 Авто"
         start_stop_text = "⏸️ Остановить" if session_active else "▶️ Запустить отклики"
         keyboard = get_main_keyboard(start_stop_text, mode_text)
         text = (
             "🤖 *HH Bot Pro*\n\n"
             f"Статус: {'🟢 Запущен' if session_active else '🔴 Остановлен'}\n"
-            f"Режим: {'🟢 Автоматический' if not manual_mode else '🟡 Ручной (подтверждение)'}\n\n"
+            f"Режим: {'🟡 Ручной' if manual_mode else '🟢 Авто'}\n\n"
             "Выбери действие:"
         )
         await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
@@ -112,6 +110,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "back_to_main":
         await tb_helpers.show_main_menu(update, context)
         context.user_data['state'] = None
+
+    elif data == "already_authorized":
+        await query.edit_message_text(
+            "✅ Отлично!\n\n"
+            "📝 *Шаг 2: Загрузи резюме*\n\n"
+            "Отправь мне текст своего резюме (не менее 500 символов).\n"
+            "Можно скопировать прямо с hh.ru.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_resume'
+
+    elif data == "start_hh_login":
+        from core.session_manager import session_manager
+        success = session_manager.start_auth_session(user_id)
+        if success:
+            await query.edit_message_text(
+                "🌐 Открываю браузер...\n\n"
+                "Сейчас появится окно Chrome на компьютере!\n"
+                "Жди следующего сообщения от бота 👇"
+            )
+            context.user_data['state'] = 'awaiting_phone'
+        else:
+            await query.edit_message_text("⚠️ Авторизация уже запущена.")
 
     elif data == "resume_menu":
         await query.edit_message_text(
@@ -174,16 +195,49 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not improved:
             await query.answer("Нет улучшенной версии", show_alert=True)
             return
+
+        # Отправляем улучшенное резюме текстом — разбиваем если длинное
+        max_len = 3800
+        if len(improved) > max_len:
+            await query.message.reply_text(
+                f"📄 *Улучшенная версия резюме (часть 1):*\n\n{improved[:max_len]}",
+                parse_mode="Markdown"
+            )
+            await query.message.reply_text(
+                f"📄 *Улучшенная версия резюме (часть 2):*\n\n{improved[max_len:max_len*2]}",
+                parse_mode="Markdown"
+            )
+        else:
+            await query.message.reply_text(
+                f"📄 *Улучшенная версия резюме:*\n\n{improved}",
+                parse_mode="Markdown"
+            )
+
+        # Предлагаем действия
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✨ Применить улучшенное", callback_data="apply_improved_resume")],
-            [InlineKeyboardButton("◀️ Назад", callback_data="back_to_analysis")],
+            [InlineKeyboardButton("✅ Заменить текущее резюме", callback_data="apply_improved_resume")],
+            [InlineKeyboardButton("➕ Добавить как новое резюме", callback_data="add_improved_resume")],
+            [InlineKeyboardButton("❌ Оставить текущее", callback_data="skip_analysis")],
         ])
-        await query.edit_message_text(
-            f"📄 *Улучшенная версия резюме:*\n\n{improved[:3500]}",
+        await query.message.reply_text(
+            "Что сделать с улучшенной версией?",
             reply_markup=keyboard
         )
+        await query.answer()
 
     elif data == "skip_analysis":
+        resume_text = context.user_data.get('resume_text')
+        if not resume_text:
+            user_data = await db.AsyncDatabase.get_user(user_id)
+            if user_data:
+                resume_text = user_data.get('resume_text')
+        if resume_text:
+            await db.AsyncDatabase.save_user(
+                user_id,
+                resume_text=resume_text,
+                resumes=[{"name": "Основное", "text": resume_text}],
+                active_resume_index=0
+            )
         await suggest_jobs(update, context, user_id)
         context.user_data['state'] = None
 
@@ -201,9 +255,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not improved:
             await query.answer("Нет улучшенной версии", show_alert=True)
             return
-        await db.AsyncDatabase.save_user(user_id, resume_text=improved)
+        await db.AsyncDatabase.save_user(
+            user_id,
+            resume_text=improved,
+            resumes=[{"name": "Улучшенное", "text": improved}],
+            active_resume_index=0
+        )
         context.user_data['improved_resume'] = improved
-        await query.edit_message_text("✅ Улучшенное резюме сохранено!")
+        await query.edit_message_text("✅ Улучшенное резюме сохранено как активное!")
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔄 Подобрать должность", callback_data="update_job")],
             [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
@@ -216,14 +275,41 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not improved:
             await query.edit_message_text("❌ Нет улучшенного резюме.")
             return
-        await db.AsyncDatabase.save_user(user_id, resume_text=improved)
+        # Получаем текущие резюме и заменяем активное
+        current_user = await db.AsyncDatabase.get_user(user_id)
+        resumes = current_user.get('resumes', []) if current_user else []
+        active_idx = current_user.get('active_resume_index', 0) if current_user else 0
+        if resumes and active_idx < len(resumes):
+            resumes[active_idx] = {"name": resumes[active_idx].get('name', 'Основное') + " (улучшено)", "text": improved}
+        else:
+            resumes = [{"name": "Улучшенное", "text": improved}]
+        await db.AsyncDatabase.save_user(user_id, resume_text=improved, resumes=resumes, active_resume_index=active_idx)
         context.user_data['improved_resume'] = improved
-        await query.edit_message_text("✅ Улучшенное резюме сохранено!")
+        await query.edit_message_text("✅ Текущее резюме заменено улучшенной версией!")
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔄 Обновить должность", callback_data="update_job")],
             [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
         ])
-        await query.message.reply_text("Хочешь заново подобрать должность под новое резюме?", reply_markup=keyboard)
+        await query.message.reply_text("Хочешь заново подобрать должность?", reply_markup=keyboard)
+
+    elif data == "add_improved_resume":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.edit_message_text("❌ Нет улучшенного резюме.")
+            return
+        # Добавляем как новое резюме не заменяя старое
+        current_user = await db.AsyncDatabase.get_user(user_id)
+        resumes = current_user.get('resumes', []) if current_user else []
+        new_idx = len(resumes)
+        resumes.append({"name": f"Улучшенное #{new_idx + 1}", "text": improved})
+        await db.AsyncDatabase.save_user(user_id, resumes=resumes, active_resume_index=new_idx)
+        await query.edit_message_text(f"✅ Улучшенное резюме добавлено как 'Улучшенное #{new_idx + 1}' и установлено активным!")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Обновить должность", callback_data="update_job")],
+            [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
+        ])
+        await query.message.reply_text("Хочешь подобрать должность?", reply_markup=keyboard)
 
     elif data == "update_job":
         await suggest_jobs(update, context, user_id)
@@ -261,9 +347,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         context.user_data['state'] = 'awaiting_job_url'
 
-    elif data.startswith("use_job_"):
-        job = data.replace("use_job_", "")
+    elif data.startswith("use_job_idx_"):
+        idx = int(data.replace("use_job_idx_", ""))
+        jobs = context.user_data.get('suggested_jobs', [])
+        job = jobs[idx] if idx < len(jobs) else ""
         settings['job_title'] = job
+        settings.pop('custom_search_url', None)
         await db.AsyncDatabase.save_user(user_id, settings=settings)
         await query.edit_message_text(f"✅ Будем искать: {job}")
         limit = settings.get('limit')
@@ -277,12 +366,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "new_job":
         await query.edit_message_text("📝 Введите желаемую должность:")
         context.user_data['state'] = 'awaiting_job'
-        logger.info(f"Установлено состояние awaiting_job для {user_id}")
 
     elif data == "start_session_confirm":
         job_title = settings.get('job_title')
         limit = settings.get('limit')
         custom_url = settings.get('custom_search_url')
+
+        if job_title:
+            custom_url = None
+
         if not job_title and not custom_url:
             await query.edit_message_text("❌ Не задана ни должность, ни ссылка для поиска.")
             return
@@ -290,16 +382,54 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("📊 Сколько откликов отправить? Введи число:")
             context.user_data['state'] = 'awaiting_limit'
             return
+
+        # Предлагаем выбрать резюме если их больше одного
+        resumes = user.get('resumes', []) if user else []
+        if len(resumes) > 1:
+            keyboard = []
+            for i, r in enumerate(resumes):
+                name = r.get('name', f'Резюме {i+1}')
+                active_mark = " ✅" if i == user.get('active_resume_index', 0) else ""
+                keyboard.append([InlineKeyboardButton(f"{name}{active_mark}", callback_data=f"launch_with_resume_{i}")])
+            await query.edit_message_text(
+                "📄 *Выберите резюме для этой сессии:*",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            context.user_data['pending_job_title'] = job_title
+            context.user_data['pending_limit'] = limit
+            context.user_data['pending_custom_url'] = custom_url
+            return
+
+        # Одно резюме — запускаем сразу
         if tb_helpers.start_session_func:
             success = tb_helpers.start_session_func(user_id, job_title or "", limit, custom_url)
             if success:
                 tb_helpers.user_sessions_active[user_id] = True
                 await tb_helpers.show_main_menu(update, context)
-                logger.info(f"Сессия пользователя {user_id} запущена через Telegram")
             else:
                 await query.edit_message_text("⚠️ Сессия уже запущена или произошла ошибка")
         else:
             await query.edit_message_text("❌ Функция запуска не настроена")
+        context.user_data['state'] = None
+
+    elif data.startswith("launch_with_resume_"):
+        idx = int(data.replace("launch_with_resume_", ""))
+        # Устанавливаем выбранное резюме активным
+        await db.AsyncDatabase.save_user(user_id, active_resume_index=idx)
+        job_title = context.user_data.pop('pending_job_title', settings.get('job_title', ''))
+        limit = context.user_data.pop('pending_limit', settings.get('limit', 10))
+        custom_url = context.user_data.pop('pending_custom_url', None)
+        if tb_helpers.start_session_func:
+            success = tb_helpers.start_session_func(user_id, job_title or "", limit, custom_url)
+            if success:
+                tb_helpers.user_sessions_active[user_id] = True
+                resumes = user.get('resumes', [])
+                resume_name = resumes[idx].get('name', f'Резюме {idx+1}') if idx < len(resumes) else 'Резюме'
+                await query.edit_message_text(f"🚀 Запускаю с резюме: *{resume_name}*", parse_mode="Markdown")
+                await tb_helpers.show_main_menu(update, context)
+            else:
+                await query.edit_message_text("⚠️ Сессия уже запущена или произошла ошибка")
         context.user_data['state'] = None
 
     elif data == "edit_settings":
@@ -334,21 +464,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tb_helpers.manual_decisions[vac_id] = "apply"
         event = tb_helpers.get_user_decision_event(user_id)
         event.set()
-        await query.edit_message_text(f"✅ Отклик на вакансию отправлен!")
+        await query.edit_message_text("✅ Отклик на вакансию отправлен!")
 
     elif data.startswith("skip_"):
         vac_id = data.replace("skip_", "")
         tb_helpers.manual_decisions[vac_id] = "skip"
         event = tb_helpers.get_user_decision_event(user_id)
         event.set()
-        await query.edit_message_text(f"⏭️ Вакансия пропущена.")
+        await query.edit_message_text("⏭️ Вакансия пропущена.")
 
     elif data.startswith("regen_"):
         vac_id = data.replace("regen_", "")
         tb_helpers.manual_decisions[vac_id] = "regen"
         event = tb_helpers.get_user_decision_event(user_id)
         event.set()
-        await query.edit_message_text(f"🔄 Письмо перегенерировано")
+        await query.edit_message_text("🔄 Письмо перегенерировано")
 
     elif data.startswith("full_"):
         vac_id = data.replace("full_", "")
@@ -364,7 +494,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not ctx:
             await query.answer("Вакансия не найдена", show_alert=True)
             return
-        await query.edit_message_text("✏️ Отправь новый текст сопроводительного письма:")
+        await query.edit_message_text("✏️ Отправь что хочешь изменить в письме:")
         context.user_data['state'] = 'awaiting_custom_letter'
         context.user_data['editing_vac_id'] = vac_id
 

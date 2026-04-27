@@ -1,0 +1,14 @@
+2026/04/27-17:16:33.629 2ed4 Reusing MANIFEST C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\586256947\Default\IndexedDB\https_hh.ru_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/27-17:16:33.630 2ed4 Recovering log #18
+2026/04/27-17:16:33.631 2ed4 Reusing old log C:\Users\semtv\Desktop\hh_bot_plus\chrome_profiles\586256947\Default\IndexedDB\https_hh.ru_0.indexeddb.leveldb/000018.log 
+2026/04/27-17:16:33.632 2ed4 Delete type=2 #16
+2026/04/27-17:16:33.827 8c40 Level-0 table #23: started
+2026/04/27-17:16:33.831 8c40 Level-0 table #23: 1384 bytes OK
+2026/04/27-17:16:33.833 8c40 Delete type=0 #18
+2026/04/27-17:16:33.835 2ed4 Manual compaction at level-0 from '\x00\x09\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at '\x00\x09\x01\x03\x03\x00\x00\x00\x00\x00\x00\xf0?' @ 697 : 1
+2026/04/27-17:16:33.835 2ed4 Compacting 1@0 + 1@1 files
+2026/04/27-17:16:33.839 2ed4 Generated table #24@0: 34 keys, 806 bytes
+2026/04/27-17:16:33.839 2ed4 Compacted 1@0 + 1@1 files => 806 bytes
+2026/04/27-17:16:33.840 2ed4 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/27-17:16:33.841 2ed4 Delete type=2 #23
+2026/04/27-17:16:33.843 2ed4 Manual compaction at level-0 from '\x00\x09\x01\x03\x03\x00\x00\x00\x00\x00\x00\xf0?' @ 697 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at (end)

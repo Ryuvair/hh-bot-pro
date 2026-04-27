@@ -1,0 +1,7203 @@
+
+## env.example
+
+```python
+# DeepSeek API (основной)
+DEEPSEEK_API_KEY=sk-35de223e22df4748a26f2ea146cc83a1
+
+# GigaChat API (fallback)
+GIGACHAT_CREDENTIALS=MDE5ZDk3YzEtYjk3YS03NTk0LWIzOTYtOWU1YTBlMjlhNDczOmUzNDI1ODJiLTVjOTctNDFlNS1iN2Y3LWE2ZmFmYzViZmQ3ZQ==
+
+# Telegram (будет позже)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ADMIN_ID=
+
+# Настройки бота
+VALIDATION_MODE=revaz
+SEARCH_MODE=smart
+MAX_APPLIES_PER_SESSION=18
+MAX_APPLIES_PER_DAY=100
+
+# Пути (опционально)
+HH_BOT_PROFILE=
+CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
+```
+
+## README.md
+
+```python
+# 🤖 HH Bot Pro
+
+[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**Многопользовательский Telegram-бот для комплексной автоматизации откликов на hh.ru.**  
+От сбора вакансий до генерации персонализированных сопроводительных писем — всё в одном продукте.
+
+> *«Код — лишь средство. Продукт — это ценность, которую получает пользователь.»*
+
+---
+
+## 🚀 Что умеет бот
+
+* **Умный онбординг** — загрузи резюме, получи AI-анализ, посмотри улучшенную версию.
+* **Подбор должностей** — бот предлагает релевантные вакансии на основе твоего резюме (или введи свою).
+* **AI-письма** — генерация сопроводительных писем под каждую вакансию, с привязкой твоего опыта.
+* **Два режима работы** — ручной (с карточками и подтверждением) и автоматический.
+* **Умный парсинг** — сбор вакансий с hh.ru через Playwright с поддержкой кастомных ссылок.
+* **Изолированные сессии** — каждый пользователь работает в своём профиле Chrome.
+* **Статистика** — история откликов, конверсия, отчёты в реальном времени.
+* **Защита от блокировок** — прокси, рандомизированные паузы, эмуляция поведения человека.
+
+---
+
+## 🛠 Стек технологий
+
+| Компонент       | Технология                                                                 |
+|-----------------|----------------------------------------------------------------------------|
+| Язык            | Python 3.12                                                                |
+| Браузерная автоматизация | Playwright (синхронный)                                            |
+| Telegram API     | python-telegram-bot                                                       |
+| AI-движок       | DeepSeek API (через OpenAI SDK)                                           |
+| База данных      | SQLite (aiosqlite для асинхронной работы)                                 |
+| Архитектура      | Многопоточная (Threading), многопользовательская                         |
+| Прокси           | SOCKS5 с авторизацией                                                     |
+
+---
+
+## 📁 Структура проекта
+
+- **bot/** - Telegram-интерфейс
+  - **handlers/** - Обработчики команд и кнопок
+    - callbacks.py
+    - commands.py
+    - messages.py
+  - **keyboards/** - Клавиатуры и кнопки
+    - main.py
+  - **utils/** - Вспомогательные функции
+    - helpers.py
+- **config/** - Настройки и конфигурации
+  - settings.py
+- **core/** - Ядро системы
+  - browser.py (Управление Playwright)
+  - ai_client.py (Интеграция с DeepSeek)
+  - async_executor.py (Асинхронный исполнитель)
+  - prompts.py (Промпты для AI-агентов)
+  - session_manager.py (Менеджер сессий пользователей)
+- **services/** - Бизнес-логика
+  - hh_parser.py (Парсер вакансий hh.ru)
+  - applier.py (Отправка откликов)
+  - letter_generator.py (Генерация писем)
+  - alina_validator.py (AI-валидация писем)
+  - svetlana_validator.py (Проверка русского языка)
+  - resume_improver.py (Анализ и улучшение резюме)
+  - revaz_agent.py (Технический скрининг вакансий)
+- **storage/** - Работа с БД
+  - database.py
+  - history_repository.py
+- **test/** - Тесты
+  - login_once.py
+  - test_browser.py
+  - test_full.py
+  - test_setup.py
+- main.py (Точка входа)
+- README.md (Этот файл)
+- requirements.txt (Зависимости)
+```
+
+## code_dump.txt
+
+```python
+
+============================================================
+.env.example
+============================================================
+# DeepSeek API (основной)
+DEEPSEEK_API_KEY=sk-35de223e22df4748a26f2ea146cc83a1
+
+# GigaChat API (fallback)
+GIGACHAT_CREDENTIALS=MDE5ZDk3YzEtYjk3YS03NTk0LWIzOTYtOWU1YTBlMjlhNDczOmUzNDI1ODJiLTVjOTctNDFlNS1iN2Y3LWE2ZmFmYzViZmQ3ZQ==
+
+# Telegram (будет позже)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ADMIN_ID=
+
+# Настройки бота
+VALIDATION_MODE=revaz
+SEARCH_MODE=smart
+MAX_APPLIES_PER_SESSION=18
+MAX_APPLIES_PER_DAY=100
+
+# Пути (опционально)
+HH_BOT_PROFILE=
+CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
+============================================================
+dump_code.py
+============================================================
+# dump_code.py
+import os
+from pathlib import Path
+
+output_file = "code_dump.txt"
+exclude_dirs = {".venv", "__pycache__", ".git", "data", "logs", "chrome_profile"}
+exclude_ext = {".pyc", ".db", ".log"}
+
+with open(output_file, "w", encoding="utf-8") as out:
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        for file in files:
+            if Path(file).suffix in exclude_ext:
+                continue
+            if file == output_file:
+                continue
+            path = Path(root) / file
+            if path.suffix == ".py" or file in ["requirements.txt", ".env.example"]:
+                out.write(f"\n{'='*60}\n{path}\n{'='*60}\n")
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        out.write(f.read())
+                except Exception as e:
+                    out.write(f"Error reading file: {e}\n")
+============================================================
+main.py
+============================================================
+"""
+HH Bot Pro — многопользовательский с динамическим поиском и ручным режимом
+"""
+import time
+import threading
+from dotenv import load_dotenv
+load_dotenv()
+
+from core.logger import logger, log_startup, log_shutdown
+from core.session_manager import session_manager
+from config.settings import TELEGRAM_BOT_TOKEN
+from bot.bot import run_telegram_bot
+import bot.utils.helpers as tb_helpers
+
+
+def start_session(telegram_id: int, job_title: str, limit: int, custom_url: str = None) -> bool:
+    """Функция для вызова из Telegram бота"""
+    return session_manager.start_session(telegram_id, job_title, limit, custom_url)
+
+
+def stop_session(telegram_id: int):
+    """Функция для вызова из Telegram бота"""
+    session_manager.stop_session(telegram_id)
+
+
+def main():
+    log_startup()
+    # Передаём функции в хелперы, чтобы бот мог их вызывать
+    tb_helpers.set_session_handlers(start_session, stop_session)
+
+    if TELEGRAM_BOT_TOKEN:
+        telegram_thread = threading.Thread(target=run_telegram_bot, daemon=True)
+        telegram_thread.start()
+        logger.info("Telegram бот запущен в фоне")
+
+    if not tb_helpers.loop_ready.wait(timeout=10):
+        logger.error("Таймаут ожидания готовности Telegram loop")
+        return
+
+    if not tb_helpers.telegram_loop:
+        logger.error("telegram_loop всё ещё None после loop_ready!")
+        return
+
+    logger.info(f"Telegram loop готов: {id(tb_helpers.telegram_loop)}")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logger.info("Завершение работы")
+    finally:
+        log_shutdown(0)
+
+
+if __name__ == "__main__":
+    main()
+============================================================
+requirements.txt
+============================================================
+playwright==1.48.0
+python-dotenv==1.0.1
+openai==1.54.0
+gigachat==0.1.9
+python-telegram-bot==20.7
+playwright==1.48.0
+python-dotenv==1.0.1
+openai==1.54.0
+gigachat==0.1.9
+python-telegram-bot==20.7
+pysocks==1.7.1
+aiosqlite==0.20.0
+============================================================
+tunnel.py
+============================================================
+import asyncio
+from mtprotoproxy import MTProtoProxy
+
+async def main():
+    proxy = MTProtoProxy(
+        host="130.49.5.41",
+        port=443,
+        secret=bytes.fromhex("ee3196a49fcbc0b8767ca723c875c815d779612e7275"),
+        local_host="127.0.0.1",
+        local_port=1080
+    )
+    print("🚀 Туннель запущен на 127.0.0.1:1080")
+    await proxy.start()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+============================================================
+bot\bot.py
+============================================================
+import asyncio
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from config.settings import TELEGRAM_BOT_TOKEN
+from core.logger import logger
+import bot.utils.helpers as tb_helpers
+from bot.handlers.commands import start, cancel, help_command
+from bot.handlers.callbacks import button_handler
+from bot.handlers.messages import handle_all_text
+
+
+def run_telegram_bot():
+    if not TELEGRAM_BOT_TOKEN:
+        logger.warning("Telegram токен не настроен.")
+        return
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    tb_helpers.telegram_loop = loop
+
+    try:
+        application = (
+            Application.builder()
+            .token(TELEGRAM_BOT_TOKEN)
+            .proxy_url(tb_helpers.PROXY_URL)
+            .get_updates_proxy_url(tb_helpers.PROXY_URL)
+            .build()
+        )
+        tb_helpers.telegram_bot = application.bot
+        tb_helpers.loop_ready.set()
+    except Exception as e:
+        logger.error(f"Не удалось создать Application: {e}")
+        return
+
+    # Установка команд для нативного меню
+    loop.run_until_complete(
+        application.bot.set_my_commands([
+            ("start", "Главное меню"),
+            ("help", "Помощь и инструкция"),
+            ("cancel", "Отменить действие"),
+        ])
+    )
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("cancel", cancel))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_all_text))
+
+    logger.info(f"✅ Telegram бот запущен через прокси {tb_helpers.PROXY_URL}")
+    loop.run_until_complete(application.run_polling(drop_pending_updates=True))
+============================================================
+bot\__init__.py
+============================================================
+
+============================================================
+bot\handlers\callbacks.py
+============================================================
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+import bot.utils.helpers as tb_helpers
+from bot.keyboards.main import (
+    get_resume_menu_keyboard, get_job_suggestions_keyboard,
+    get_confirm_job_keyboard, get_main_keyboard, get_jobs_menu_keyboard
+)
+import storage.database as db
+from core.logger import logger
+from core.ai_client import get_ai_client_async
+from core.prompts import JOB_SUGGESTIONS_PROMPT
+from bot.handlers.messages import analyze_resume_handler
+from core.async_executor import run_in_thread
+
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    user_id = update.effective_user.id
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+
+    session_active = tb_helpers.get_user_session_active(user_id)
+    manual_mode = tb_helpers.get_user_manual_mode(user_id)
+
+    if data == "toggle_session":
+        if not session_active:
+            job_title = settings.get('job_title')
+            limit = settings.get('limit')
+
+            if job_title:
+                keyboard = get_confirm_job_keyboard(job_title)
+                await query.edit_message_text(
+                    f"Желаемая должность: *{job_title}*\n\nХотите искать по ней или ввести новую?",
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                context.user_data['state'] = None
+                return
+            else:
+                await query.edit_message_text("📝 Введите желаемую должность:")
+                context.user_data['state'] = 'awaiting_job'
+                return
+        else:
+            if tb_helpers.stop_session_func:
+                tb_helpers.stop_session_func(user_id)
+                session_active = False
+                mode_text = "🟢 Авто" if not manual_mode else "🟡 Ручной"
+                start_stop_text = "▶️ Запустить отклики"
+                keyboard = get_main_keyboard(start_stop_text, mode_text)
+                text = (
+                    "🤖 *HH Bot Pro*\n\n"
+                    f"Статус: 🔴 Остановлен\n"
+                    f"Режим: {'🟢 Автоматический' if not manual_mode else '🟡 Ручной (подтверждение)'}\n\n"
+                    "Выбери действие:"
+                )
+                await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
+                logger.info(f"Сессия пользователя {user_id} остановлена через Telegram")
+                context.user_data['state'] = None
+
+    elif data == "toggle_mode":
+        manual_mode = not manual_mode
+        tb_helpers.user_manual_mode[user_id] = manual_mode
+        if user:
+            settings['manual_mode'] = manual_mode
+            await db.AsyncDatabase.save_user(user_id, settings=settings)
+        session_active = tb_helpers.get_user_session_active(user_id)
+        mode_text = "🟢 Авто" if not manual_mode else "🟡 Ручной"
+        start_stop_text = "⏸️ Остановить" if session_active else "▶️ Запустить отклики"
+        keyboard = get_main_keyboard(start_stop_text, mode_text)
+        text = (
+            "🤖 *HH Bot Pro*\n\n"
+            f"Статус: {'🟢 Запущен' if session_active else '🔴 Остановлен'}\n"
+            f"Режим: {'🟢 Автоматический' if not manual_mode else '🟡 Ручной (подтверждение)'}\n\n"
+            "Выбери действие:"
+        )
+        await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
+
+    elif data == "stats":
+        stats = await db.AsyncDatabase.get_stats(user_id)
+        text = (
+            f"📊 *СТАТИСТИКА*\n\n"
+            f"📬 Всего откликов: {stats['total']}\n"
+            f"✅ Отправлено: {stats['sent']}\n"
+            f"🛡️ Отклонено Ревазом: {stats['revaz_skip']}\n"
+            f"❌ Ошибок: {stats['error']}\n"
+            f"🤖 AI-ошибок: {stats['ai_error']}\n\n"
+            f"📅 *Сегодня отправлено:* {stats['sent_today']}"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Успешные отклики", callback_data="successful_applications")],
+            [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")]
+        ])
+        await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
+
+    elif data == "successful_applications":
+        apps = await db.AsyncDatabase.get_recent_applications(user_id, limit=10, status='sent')
+        if not apps:
+            await query.edit_message_text("Пока нет успешных откликов.")
+            return
+        text = "*Последние отправленные отклики:*\n\n"
+        keyboard = []
+        for app in apps:
+            short_title = app['title'][:40] + "..." if len(app['title']) > 40 else app['title']
+            keyboard.append([InlineKeyboardButton(short_title, url=app['url'])])
+        keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="stats")])
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+
+    elif data == "back_to_main":
+        await tb_helpers.show_main_menu(update, context)
+        context.user_data['state'] = None
+
+    elif data == "resume_menu":
+        await query.edit_message_text(
+            "📄 *Управление резюме*\n\nВыбери действие:",
+            parse_mode="Markdown",
+            reply_markup=get_resume_menu_keyboard()
+        )
+
+    elif data == "view_resume":
+        resume_text = await db.AsyncDatabase.get_active_resume(user_id)
+        if not resume_text:
+            await query.answer("Активное резюме не найдено", show_alert=True)
+            return
+        await query.edit_message_text(
+            f"📄 *Ваше активное резюме:*\n\n{resume_text[:3500]}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data="resume_menu")]])
+        )
+
+    elif data == "upload_resume":
+        await query.edit_message_text("📤 Отправь мне текст твоего резюме (более 500 символов).")
+        context.user_data['state'] = 'awaiting_resume'
+
+    elif data == "switch_resume":
+        resumes = user.get('resumes', []) if user else []
+        if not resumes:
+            await query.answer("У вас нет сохранённых резюме", show_alert=True)
+            return
+        keyboard = []
+        for i, r in enumerate(resumes):
+            name = r.get('name', f'Резюме {i+1}')
+            active_mark = " ✅" if i == user.get('active_resume_index', 0) else ""
+            keyboard.append([InlineKeyboardButton(f"{name}{active_mark}", callback_data=f"set_active_resume_{i}")])
+        keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="resume_menu")])
+        await query.edit_message_text(
+            "🔄 *Выберите активное резюме:*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif data.startswith("set_active_resume_"):
+        idx = int(data.replace("set_active_resume_", ""))
+        if user and user.get('resumes'):
+            await db.AsyncDatabase.save_user(user_id, active_resume_index=idx)
+            await query.edit_message_text("✅ Активное резюме изменено.")
+            await tb_helpers.show_main_menu(update, context)
+        else:
+            await query.answer("Ошибка", show_alert=True)
+
+    elif data == "analyze_resume":
+        resume_text = await db.AsyncDatabase.get_active_resume(user_id)
+        if not resume_text:
+            await query.edit_message_text("❌ Активное резюме не найдено.")
+            return
+        await query.edit_message_text("🔍 Алина анализирует...")
+        await analyze_resume_handler(update, context, user_id, resume_text)
+
+    elif data == "view_improved":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.answer("Нет улучшенной версии", show_alert=True)
+            return
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✨ Применить улучшенное", callback_data="apply_improved_resume")],
+            [InlineKeyboardButton("◀️ Назад", callback_data="back_to_analysis")],
+        ])
+        await query.edit_message_text(
+            f"📄 *Улучшенная версия резюме:*\n\n{improved[:3500]}",
+            reply_markup=keyboard
+        )
+
+    elif data == "skip_analysis":
+        await suggest_jobs(update, context, user_id)
+        context.user_data['state'] = None
+
+    elif data == "back_to_analysis":
+        analysis = context.user_data.get('analysis')
+        resume_text = context.user_data.get('resume_text') or await db.AsyncDatabase.get_active_resume(user_id)
+        if analysis and resume_text:
+            await analyze_resume_handler(update, context, user_id, resume_text)
+        else:
+            await query.edit_message_text("Данные анализа не найдены.")
+
+    elif data == "apply_improved_onboard":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.answer("Нет улучшенной версии", show_alert=True)
+            return
+        await db.AsyncDatabase.save_user(user_id, resume_text=improved)
+        context.user_data['improved_resume'] = improved
+        await query.edit_message_text("✅ Улучшенное резюме сохранено!")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Подобрать должность", callback_data="update_job")],
+            [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
+        ])
+        await query.message.reply_text("Хочешь подобрать должность под новое резюме?", reply_markup=keyboard)
+
+    elif data == "apply_improved_resume":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.edit_message_text("❌ Нет улучшенного резюме.")
+            return
+        await db.AsyncDatabase.save_user(user_id, resume_text=improved)
+        context.user_data['improved_resume'] = improved
+        await query.edit_message_text("✅ Улучшенное резюме сохранено!")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Обновить должность", callback_data="update_job")],
+            [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
+        ])
+        await query.message.reply_text("Хочешь заново подобрать должность под новое резюме?", reply_markup=keyboard)
+
+    elif data == "update_job":
+        await suggest_jobs(update, context, user_id)
+
+    elif data == "jobs_menu":
+        await query.edit_message_text(
+            "📌 *Управление должностями*\n\nВыбери действие:",
+            parse_mode="Markdown",
+            reply_markup=get_jobs_menu_keyboard()
+        )
+
+    elif data == "job_manual":
+        await query.edit_message_text("📝 Введите желаемую должность:")
+        context.user_data['state'] = 'awaiting_job'
+
+    elif data == "job_suggest":
+        await suggest_jobs(update, context, user_id)
+
+    elif data == "job_show":
+        job_title = settings.get('job_title', 'Не указана')
+        await query.edit_message_text(
+            f"📌 *Текущая должность для поиска:*\n\n{job_title}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Назад", callback_data="jobs_menu")]
+            ])
+        )
+
+    elif data == "job_url":
+        await query.edit_message_text(
+            "🔗 *Отправь мне готовую ссылку на поиск hh.ru*\n\n"
+            "Пример: `https://hh.ru/search/vacancy?resume=...&experience=noExperience`\n\n"
+            "Я сохраню эту ссылку и буду использовать её для поиска вместо должности.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_job_url'
+
+    elif data.startswith("use_job_"):
+        job = data.replace("use_job_", "")
+        settings['job_title'] = job
+        await db.AsyncDatabase.save_user(user_id, settings=settings)
+        await query.edit_message_text(f"✅ Будем искать: {job}")
+        limit = settings.get('limit')
+        if not limit:
+            await query.edit_message_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+            return
+        from bot.handlers.messages import show_summary_and_confirm
+        await show_summary_and_confirm(update, user_id, job, limit)
+
+    elif data == "new_job":
+        await query.edit_message_text("📝 Введите желаемую должность:")
+        context.user_data['state'] = 'awaiting_job'
+        logger.info(f"Установлено состояние awaiting_job для {user_id}")
+
+    elif data == "start_session_confirm":
+        job_title = settings.get('job_title')
+        limit = settings.get('limit')
+        custom_url = settings.get('custom_search_url')
+        if not job_title and not custom_url:
+            await query.edit_message_text("❌ Не задана ни должность, ни ссылка для поиска.")
+            return
+        if not limit:
+            await query.edit_message_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+            return
+        if tb_helpers.start_session_func:
+            success = tb_helpers.start_session_func(user_id, job_title or "", limit, custom_url)
+            if success:
+                tb_helpers.user_sessions_active[user_id] = True
+                await tb_helpers.show_main_menu(update, context)
+                logger.info(f"Сессия пользователя {user_id} запущена через Telegram")
+            else:
+                await query.edit_message_text("⚠️ Сессия уже запущена или произошла ошибка")
+        else:
+            await query.edit_message_text("❌ Функция запуска не настроена")
+        context.user_data['state'] = None
+
+    elif data == "edit_settings":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💼 Изменить должность", callback_data="edit_job")],
+            [InlineKeyboardButton("🔢 Изменить лимит", callback_data="edit_limit")],
+            [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+        ])
+        await query.edit_message_text("Что хотите изменить?", reply_markup=keyboard)
+
+    elif data == "edit_job":
+        await query.edit_message_text("📝 Введите новую должность:")
+        context.user_data['state'] = 'awaiting_job'
+        context.user_data['editing_job'] = True
+
+    elif data == "edit_limit":
+        await query.edit_message_text("📊 Введите новое количество откликов (1-200):")
+        context.user_data['state'] = 'awaiting_limit'
+        context.user_data['editing_limit'] = True
+
+    elif data == "start_by_url":
+        await query.edit_message_text(
+            "🔗 *Отправь мне готовую ссылку на поиск hh.ru*\n\n"
+            "Пример: `https://hh.ru/search/vacancy?resume=...&experience=noExperience`\n\n"
+            "Я запущу отклики по этой ссылке, используя твоё активное резюме.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_search_url'
+
+    elif data.startswith("apply_"):
+        vac_id = data.replace("apply_", "")
+        tb_helpers.manual_decisions[vac_id] = "apply"
+        event = tb_helpers.get_user_decision_event(user_id)
+        event.set()
+        await query.edit_message_text(f"✅ Отклик на вакансию отправлен!")
+
+    elif data.startswith("skip_"):
+        vac_id = data.replace("skip_", "")
+        tb_helpers.manual_decisions[vac_id] = "skip"
+        event = tb_helpers.get_user_decision_event(user_id)
+        event.set()
+        await query.edit_message_text(f"⏭️ Вакансия пропущена.")
+
+    elif data.startswith("regen_"):
+        vac_id = data.replace("regen_", "")
+        tb_helpers.manual_decisions[vac_id] = "regen"
+        event = tb_helpers.get_user_decision_event(user_id)
+        event.set()
+        await query.edit_message_text(f"🔄 Письмо перегенерировано")
+
+    elif data.startswith("full_"):
+        vac_id = data.replace("full_", "")
+        ctx = tb_helpers.pending_vacancies.get(vac_id)
+        if ctx:
+            await query.message.reply_text(f"📄 *Полный текст письма:*\n\n{ctx['letter']}", parse_mode="Markdown")
+        else:
+            await query.answer("Вакансия не найдена", show_alert=True)
+
+    elif data.startswith("edit_"):
+        vac_id = data.replace("edit_", "")
+        ctx = tb_helpers.pending_vacancies.get(vac_id)
+        if not ctx:
+            await query.answer("Вакансия не найдена", show_alert=True)
+            return
+        await query.edit_message_text("✏️ Отправь новый текст сопроводительного письма:")
+        context.user_data['state'] = 'awaiting_custom_letter'
+        context.user_data['editing_vac_id'] = vac_id
+
+
+async def suggest_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
+    user = await db.AsyncDatabase.get_user(user_id)
+    resume_text = user['resume_text'] if user else context.user_data.get('resume_text', '')
+    active_resume = await db.AsyncDatabase.get_active_resume(user_id)
+    if active_resume:
+        resume_text = active_resume
+    ai = await get_ai_client_async()
+    prompt = JOB_SUGGESTIONS_PROMPT.format(resume=resume_text[:2000])
+
+    try:
+        import json
+        jobs_str = await run_in_thread(ai.generate, prompt, max_tokens=300)
+        jobs_str = jobs_str.strip()
+        if jobs_str.startswith('```json'):
+            jobs_str = jobs_str[7:]
+        if jobs_str.startswith('```'):
+            jobs_str = jobs_str[3:]
+        if jobs_str.endswith('```'):
+            jobs_str = jobs_str[:-3]
+        jobs = json.loads(jobs_str)
+        if not isinstance(jobs, list) or len(jobs) == 0:
+            raise ValueError("Пустой список")
+    except Exception as e:
+        logger.warning(f"Не удалось распарсить JSON с должностями: {e}")
+        jobs = ["Менеджер проектов", "Менеджер по продажам", "Аналитик", "Продакт-менеджер", "Ассистент руководителя"]
+
+    context.user_data['suggested_jobs'] = jobs
+    keyboard = get_job_suggestions_keyboard(jobs)
+    text = "📋 Я подобрал для тебя подходящие должности. Выбери или введи свою:"
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=keyboard)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard)
+============================================================
+bot\handlers\commands.py
+============================================================
+from telegram import Update
+from telegram.ext import ContextTypes
+from bot.utils.helpers import show_main_menu
+import storage.database as db
+from core.logger import logger
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = await db.AsyncDatabase.get_user(user_id)
+    if user and user.get('resume_text'):
+        # Устанавливаем ручной режим из настроек пользователя
+        if user.get('settings'):
+            import bot.utils.helpers as tb_helpers
+            tb_helpers.user_manual_mode[user_id] = user['settings'].get('manual_mode', False)
+        await show_main_menu(update, context)
+        context.user_data['state'] = None
+    else:
+        await update.message.reply_text(
+            "👋 Привет! Я помогу тебе автоматизировать отклики на hh.ru.\n\n"
+            "Для начала отправь мне текст твоего резюме (не менее 500 символов)."
+        )
+        context.user_data['state'] = 'awaiting_resume'
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Настройка отменена.")
+    context.user_data['state'] = None
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "🤖 *HH Bot Pro — Помощь*\n\n"
+        "Этот бот автоматизирует отклики на hh.ru.\n\n"
+        "*Основные действия:*\n"
+        "• Загрузите резюме через меню «Резюме».\n"
+        "• Укажите желаемую должность и количество откликов.\n"
+        "• Выберите режим: авто (бот сам решает) или ручной (вы подтверждаете каждый отклик).\n"
+        "• Нажмите «Запустить отклики» — бот начнёт работу.\n\n"
+        "*Команды:*\n"
+        "/start — главное меню\n"
+        "/help — эта справка\n"
+        "/cancel — отменить текущую настройку\n"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
+============================================================
+bot\handlers\messages.py
+============================================================
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+import bot.utils.helpers as tb_helpers
+import storage.database as db
+from core.logger import logger
+from bot.keyboards.main import get_analysis_keyboard
+from core.async_executor import run_in_thread
+
+
+async def handle_all_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    state = context.user_data.get('state')
+    user_id = update.effective_user.id
+    text = update.message.text.strip()
+
+    logger.info(f"📥 Получено сообщение от {user_id}, state={state}, текст: {text}")
+
+    if state == 'awaiting_resume':
+        await process_resume(update, context, user_id, text)
+    elif state == 'awaiting_job':
+        await process_job(update, context, user_id, text)
+    elif state == 'awaiting_limit':
+        await process_limit(update, context, user_id, text)
+    elif state == 'awaiting_custom_letter':
+        await process_custom_letter(update, context, user_id, text)
+    elif state == 'awaiting_job_url':
+        await process_job_url(update, context, user_id, text)
+    elif state == 'awaiting_search_url':
+        await process_search_url(update, context, user_id, text)
+    elif state == 'awaiting_limit_for_url':
+        await process_limit_for_url(update, context, user_id, text)
+    else:
+        await update.message.reply_text("Используйте кнопки меню для навигации.")
+
+
+async def analyze_resume_async(user_id: int, resume: str, status_message, context: ContextTypes.DEFAULT_TYPE = None):
+    from services.resume_improver import ResumeImprover
+
+    improver = ResumeImprover()
+    analysis = await run_in_thread(improver.analyze, resume)
+
+    if context:
+        context.user_data['analysis'] = analysis
+        context.user_data['resume_text'] = resume
+        if analysis.get('improved_resume'):
+            context.user_data['improved_resume'] = analysis['improved_resume']
+
+    text = f"📊 *Оценка резюме: {analysis['score']}/10*\n\n"
+    if analysis['strengths']:
+        text += "*Сильные стороны:*\n" + '\n'.join(f"✅ {s}" for s in analysis['strengths']) + "\n\n"
+    if analysis['weaknesses']:
+        text += "*Что можно улучшить:*\n" + '\n'.join(f"⚠️ {w}" for w in analysis['weaknesses']) + "\n\n"
+
+    from bot.keyboards.main import get_analysis_keyboard
+    keyboard = get_analysis_keyboard(has_improved=bool(analysis.get('improved_resume')))
+
+    await status_message.edit_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def process_resume(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    if len(text) < 500:
+        await update.message.reply_text("❌ Резюме слишком короткое. Отправь текст от 500 символов.")
+        return
+
+    await db.AsyncDatabase.save_user(user_id, resume_text=text)
+    await update.message.reply_text("✅ Резюме сохранено!")
+    context.user_data['state'] = None
+
+    msg = await update.message.reply_text("🔍 Алина анализирует резюме...")
+    await analyze_resume_async(user_id, text, msg, context)
+
+
+async def analyze_resume_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, resume: str):
+    msg = await update.callback_query.edit_message_text("🔍 Алина анализирует резюме...")
+    await analyze_resume_async(user_id, resume, msg, context)
+
+
+async def process_job(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, job: str):
+    if not job:
+        await update.message.reply_text("❌ Введите название должности.")
+        return
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['job_title'] = job
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+    await update.message.reply_text(f"✅ Должность сохранена: {job}")
+    context.user_data['state'] = None
+
+    is_editing = context.user_data.pop('editing_job', False)
+    limit = settings.get('limit')
+
+    if is_editing:
+        await show_summary_and_confirm(update, user_id, job, limit or 0)
+    else:
+        if limit:
+            await show_summary_and_confirm(update, user_id, job, limit)
+        else:
+            await update.message.reply_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+
+
+async def process_limit(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    try:
+        limit = int(text)
+        if limit < 1 or limit > 200:
+            await update.message.reply_text("❌ Введи число от 1 до 200.")
+            return
+    except ValueError:
+        await update.message.reply_text("❌ Введи целое число.")
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['limit'] = limit
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+    await update.message.reply_text(f"✅ Лимит установлен: {limit} откликов.")
+    context.user_data['state'] = None
+
+    job_title = settings.get('job_title', 'Не указана')
+    is_editing = context.user_data.pop('editing_limit', False)
+
+    if is_editing:
+        await show_summary_and_confirm(update, user_id, job_title, limit)
+    else:
+        if job_title and job_title != 'Не указана':
+            await show_summary_and_confirm(update, user_id, job_title, limit)
+        else:
+            await update.message.reply_text("📝 Введите желаемую должность:")
+            context.user_data['state'] = 'awaiting_job'
+
+
+async def show_summary_and_confirm(update: Update, user_id: int, job_title: str, limit: int):
+    text = (
+        f"📋 *Проверьте настройки:*\n\n"
+        f"💼 Должность: *{job_title}*\n"
+        f"🔢 Откликов: *{limit}*\n\n"
+        f"Всё верно?"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🚀 Начать работу", callback_data="start_session_confirm")],
+        [InlineKeyboardButton("✏️ Изменить", callback_data="edit_settings")],
+    ])
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    else:
+        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def process_custom_letter(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, new_letter: str):
+    vac_id = context.user_data.get('editing_vac_id')
+    if not vac_id:
+        return
+    if len(new_letter) < 50:
+        await update.message.reply_text("❌ Слишком короткое письмо. Попробуй ещё раз.")
+        return
+    ctx = tb_helpers.pending_vacancies.get(vac_id)
+    if ctx:
+        ctx['letter'] = new_letter
+        stars = "⭐" * (ctx['revaz_score'] // 2) + "☆" * (5 - ctx['revaz_score'] // 2)
+        letter_preview = new_letter[:1000] + "..." if len(new_letter) > 1000 else new_letter
+        text = (
+            f"🎯 *{ctx['vacancy']['title'][:60]}*\n\n"
+            f"🏢 {ctx['vacancy'].get('company', 'Не указана')}\n"
+            f"💰 {ctx['vacancy'].get('salary', 'Не указана')}\n"
+            f"📊 Релевантность: {ctx['revaz_score']}/10 {stars}\n"
+            f"💡 {ctx['revaz_reason'][:100]}\n\n"
+            f"📝 *Письмо (отредактировано):*\n{letter_preview}"
+        )
+        from bot.keyboards.main import get_vacancy_card_keyboard
+        keyboard = get_vacancy_card_keyboard(vac_id)
+        await tb_helpers.telegram_bot.edit_message_text(
+            chat_id=ctx['chat_id'],
+            message_id=ctx['message_id'],
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
+        await update.message.reply_text("✅ Письмо обновлено!")
+    context.user_data.pop('editing_vac_id', None)
+    context.user_data['state'] = None
+
+
+async def process_job_url(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, url: str):
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if not parsed.netloc.endswith("hh.ru") or "/search/vacancy" not in parsed.path:
+        await update.message.reply_text("❌ Некорректная ссылка. Убедись, что это ссылка на поиск вакансий hh.ru.")
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['custom_search_url'] = url
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+
+    await update.message.reply_text("✅ Ссылка сохранена. Теперь поиск будет идти по ней.")
+    context.user_data['state'] = None
+    await tb_helpers.show_main_menu(update, context)
+
+
+async def process_search_url(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, url: str):
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if not parsed.netloc.endswith("hh.ru") or "/search/vacancy" not in parsed.path:
+        await update.message.reply_text("❌ Некорректная ссылка. Убедись, что это ссылка на поиск вакансий hh.ru.")
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['custom_search_url'] = url
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+
+    limit = settings.get('limit')
+    if limit:
+        if tb_helpers.start_session_func:
+            success = tb_helpers.start_session_func(user_id, "", limit, custom_url=url)
+            if success:
+                tb_helpers.user_sessions_active[user_id] = True
+                await update.message.reply_text("🚀 Запускаю отклики по твоей ссылке!")
+                await tb_helpers.show_main_menu(update, context)
+            else:
+                await update.message.reply_text("⚠️ Сессия уже запущена или произошла ошибка")
+        else:
+            await update.message.reply_text("❌ Функция запуска не настроена")
+    else:
+        await update.message.reply_text("📊 Сколько откликов отправить? Введи число:")
+        context.user_data['state'] = 'awaiting_limit_for_url'
+        context.user_data['custom_url'] = url
+
+
+async def process_limit_for_url(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    try:
+        limit = int(text)
+        if limit < 1 or limit > 200:
+            await update.message.reply_text("❌ Введи число от 1 до 200.")
+            return
+    except ValueError:
+        await update.message.reply_text("❌ Введи целое число.")
+        return
+
+    custom_url = context.user_data.get('custom_url')
+    if not custom_url:
+        await update.message.reply_text("❌ Ссылка потерялась. Попробуй снова.")
+        context.user_data['state'] = None
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['limit'] = limit
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+
+    if tb_helpers.start_session_func:
+        success = tb_helpers.start_session_func(user_id, "", limit, custom_url=custom_url)
+        if success:
+            tb_helpers.user_sessions_active[user_id] = True
+            await update.message.reply_text("🚀 Запускаю отклики по твоей ссылке!")
+            await tb_helpers.show_main_menu(update, context)
+        else:
+            await update.message.reply_text("⚠️ Сессия уже запущена или произошла ошибка")
+    else:
+        await update.message.reply_text("❌ Функция запуска не настроена")
+
+    context.user_data['state'] = None
+    context.user_data.pop('custom_url', None)
+============================================================
+bot\handlers\__init__.py
+============================================================
+
+============================================================
+bot\keyboards\main.py
+============================================================
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+def get_main_keyboard(start_stop_text: str, mode_text: str) -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(start_stop_text, callback_data="toggle_session")],
+        [InlineKeyboardButton(f"🔄 Режим: {mode_text}", callback_data="toggle_mode")],
+        [InlineKeyboardButton("📊 Статистика", callback_data="stats")],
+        [InlineKeyboardButton("📄 Резюме", callback_data="resume_menu")],
+        [InlineKeyboardButton("📌 Мои должности", callback_data="jobs_menu")],
+        [InlineKeyboardButton("🔗 Запустить отклики по ссылке", callback_data="start_by_url")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_resume_menu_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton("👁️ Посмотреть активное резюме", callback_data="view_resume")],
+        [InlineKeyboardButton("📤 Загрузить новое резюме", callback_data="upload_resume")],
+        [InlineKeyboardButton("🔄 Сменить активное резюме", callback_data="switch_resume")],
+        [InlineKeyboardButton("🔍 Анализировать текущее", callback_data="analyze_resume")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_analysis_keyboard(has_improved: bool = False) -> InlineKeyboardMarkup:
+    keyboard = []
+    if has_improved:
+        keyboard.append([InlineKeyboardButton("👀 Посмотреть улучшенное", callback_data="view_improved")])
+        keyboard.append([InlineKeyboardButton("✨ Применить улучшенное", callback_data="apply_improved_onboard")])
+    keyboard.append([InlineKeyboardButton("⏭️ Оставить как есть", callback_data="skip_analysis")])
+    return InlineKeyboardMarkup(keyboard)
+
+def get_settings_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton("🔥 Автоматический", callback_data="mode_auto")],
+        [InlineKeyboardButton("🎯 Ручной (подтверждение)", callback_data="mode_manual")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_job_suggestions_keyboard(jobs: list) -> InlineKeyboardMarkup:
+    keyboard = []
+    for job in jobs[:8]:
+        keyboard.append([InlineKeyboardButton(job, callback_data=f"use_job_{job}")])
+    keyboard.append([InlineKeyboardButton("✏️ Ввести свою", callback_data="new_job")])
+    return InlineKeyboardMarkup(keyboard)
+
+def get_vacancy_card_keyboard(vacancy_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Откликнуться", callback_data=f"apply_{vacancy_id}")],
+        [InlineKeyboardButton("⏭️ Пропустить", callback_data=f"skip_{vacancy_id}")],
+        [InlineKeyboardButton("🔄 Перегенерировать", callback_data=f"regen_{vacancy_id}")],
+        [InlineKeyboardButton("📄 Полностью", callback_data=f"full_{vacancy_id}")],
+        [InlineKeyboardButton("✏️ Редактировать", callback_data=f"edit_{vacancy_id}")],
+    ])
+
+def get_confirm_job_keyboard(job_title: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"🔍 Искать: {job_title}", callback_data=f"use_job_{job_title}")],
+        [InlineKeyboardButton("✏️ Ввести новую", callback_data="new_job")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+    ])
+
+def get_jobs_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✏️ Ввести должность вручную", callback_data="job_manual")],
+        [InlineKeyboardButton("🤖 Подобрать по резюме", callback_data="job_suggest")],
+        [InlineKeyboardButton("👁️ Показать текущую должность", callback_data="job_show")],
+        [InlineKeyboardButton("🔗 Вставить ссылку с фильтрами", callback_data="job_url")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+    ])
+============================================================
+bot\keyboards\__init__.py
+============================================================
+
+============================================================
+bot\utils\helpers.py
+============================================================
+import asyncio
+import threading
+from telegram import Update
+from config.settings import TELEGRAM_BOT_TOKEN
+from core.logger import logger
+
+# Глобальные переменные для многопользовательской работы
+user_sessions_active = {}        # telegram_id -> bool
+user_stop_flags = {}             # telegram_id -> bool
+user_manual_mode = {}            # telegram_id -> bool
+user_decision_events = {}        # telegram_id -> threading.Event (создаётся при необходимости)
+
+pending_vacancies = {}           # vac_id -> контекст для ручного режима
+manual_decisions = {}            # vac_id -> решение (apply/skip/regen)
+
+# Прокси
+PROXY_URL = "socks5://qWshEM:9qau5X@85.195.81.131:11412"
+
+# Функции запуска/остановки сессий (устанавливаются из main.py)
+start_session_func = None
+stop_session_func = None
+
+# Глобальные объекты, общие для всех сессий (но используемые только внутри потоков)
+current_page = None
+current_ai_client = None
+current_resume = None
+
+# Telegram-специфичные
+telegram_loop = None
+telegram_bot = None
+loop_ready = threading.Event()
+
+
+def set_global_page(page):
+    global current_page
+    current_page = page
+
+
+def set_global_ai_client(ai_client):
+    global current_ai_client
+    current_ai_client = ai_client
+
+
+def set_global_resume(resume_text):
+    global current_resume
+    current_resume = resume_text
+
+
+def set_session_handlers(start_func, stop_func):
+    global start_session_func, stop_session_func
+    start_session_func = start_func
+    stop_session_func = stop_func
+
+
+def get_user_manual_mode(telegram_id: int) -> bool:
+    """Возвращает ручной режим для конкретного пользователя"""
+    return user_manual_mode.get(telegram_id, False)
+
+
+def get_user_session_active(telegram_id: int) -> bool:
+    """Проверяет, активна ли сессия у пользователя"""
+    return user_sessions_active.get(telegram_id, False)
+
+
+def get_user_decision_event(telegram_id: int) -> threading.Event:
+    """Возвращает событие для ожидания решения пользователя (создаёт при необходимости)"""
+    if telegram_id not in user_decision_events:
+        user_decision_events[telegram_id] = threading.Event()
+    return user_decision_events[telegram_id]
+
+
+async def send_message(update: Update, text: str, reply_markup=None, parse_mode="Markdown"):
+    """Отправляет новое сообщение (без повторов)"""
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        await query.message.reply_text(text=text, reply_markup=reply_markup, parse_mode=parse_mode)
+    else:
+        await update.message.reply_text(text=text, reply_markup=reply_markup, parse_mode=parse_mode)
+
+
+async def show_main_menu(update: Update, context):
+    from bot.keyboards.main import get_main_keyboard
+    user_id = update.effective_user.id
+    manual_mode = get_user_manual_mode(user_id)
+    session_active = get_user_session_active(user_id)
+
+    mode_text = "🟢 Авто" if not manual_mode else "🟡 Ручной"
+    start_stop_text = "⏸️ Остановить" if session_active else "▶️ Запустить отклики"
+    keyboard = get_main_keyboard(start_stop_text, mode_text)
+
+    text = (
+        "🤖 *HH Bot Pro*\n\n"
+        f"Статус: {'🟢 Запущен' if session_active else '🔴 Остановлен'}\n"
+        f"Режим: {'🟢 Автоматический' if not manual_mode else '🟡 Ручной (подтверждение)'}\n\n"
+        "Выбери действие:"
+    )
+    await send_message(update, text, keyboard)
+
+
+async def send_vacancy_card(chat_id: int, vacancy: dict, letter: str, revaz_score: int, revaz_reason: str):
+    if not telegram_bot:
+        logger.error("telegram_bot не инициализирован")
+        return None
+    stars = "⭐" * (revaz_score // 2) + "☆" * (5 - revaz_score // 2)
+    letter_preview = letter[:1000] + "..." if len(letter) > 1000 else letter
+    # Формируем ссылку на вакансию
+    vacancy_url = vacancy.get('url', f"https://hh.ru/vacancy/{vacancy['id']}")
+    text = (
+        f"🎯 *[{vacancy['title'][:60]}]({vacancy_url})*\n\n"
+        f"🏢 {vacancy.get('company', 'Не указана')}\n"
+        f"📍 {vacancy.get('area', 'Не указан')}\n"
+        f"💰 {vacancy.get('salary', 'Не указана')}\n"
+        f"📊 Релевантность: {revaz_score}/10 {stars}\n"
+        f"💡 {revaz_reason[:100]}\n\n"
+        f"📝 *Письмо:*\n{letter_preview}"
+    )
+    from bot.keyboards.main import get_vacancy_card_keyboard
+    keyboard = get_vacancy_card_keyboard(vacancy['id'])
+    msg = await telegram_bot.send_message(chat_id, text, reply_markup=keyboard, parse_mode="Markdown", disable_web_page_preview=True)
+    pending_vacancies[vacancy['id']] = {
+        'vacancy': vacancy,
+        'letter': letter,
+        'message_id': msg.message_id,
+        'chat_id': chat_id,
+        'revaz_score': revaz_score,
+        'revaz_reason': revaz_reason
+    }
+    return msg
+
+
+async def send_auto_apply_card(chat_id: int, vacancy: dict, letter: str):
+    """Отправляет информационную карточку об успешном авто-отклике"""
+    if not telegram_bot:
+        return
+    vacancy_url = vacancy.get('url', f"https://hh.ru/vacancy/{vacancy['id']}")
+    text = (
+        f"✅ *Отклик отправлен (авто)*\n\n"
+        f"🎯 *[{vacancy['title'][:60]}]({vacancy_url})*\n"
+        f"🏢 {vacancy.get('company', 'Не указана')}\n"
+        f"📍 {vacancy.get('area', 'Не указан')}\n"
+        f"💰 {vacancy.get('salary', 'Не указана')}\n\n"
+        f"📝 *Письмо:*\n{letter[:1000]}..."
+    )
+    await telegram_bot.send_message(chat_id, text, parse_mode="Markdown", disable_web_page_preview=True)
+============================================================
+bot\utils\__init__.py
+============================================================
+
+============================================================
+config\settings.py
+============================================================
+"""
+Настройки HH Bot Pro
+"""
+import os
+import random
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ============================================
+# ПУТИ
+# ============================================
+BASE_DIR = Path(__file__).parent.parent
+DATA_DIR = BASE_DIR / "data"
+LOGS_DIR = BASE_DIR / "logs"
+
+LOGS_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(exist_ok=True)
+
+# ============================================
+# ПОЛЬЗОВАТЕЛЬ
+# ============================================
+DEFAULT_USER_ID = "default"
+USER_DATA_DIR = DATA_DIR / DEFAULT_USER_ID
+USER_DATA_DIR.mkdir(exist_ok=True)
+
+RESUME_FILE = USER_DATA_DIR / "resume.txt"
+PROFILE_FILE = USER_DATA_DIR / "profile.json"
+HISTORY_FILE = USER_DATA_DIR / "history.json"
+SEARCHES_FILE = USER_DATA_DIR / "searches.json"
+STOP_FILE = BASE_DIR / "stop_signal.txt"
+
+# ============================================
+# HH НАСТРОЙКИ
+# ============================================
+BOT_PROFILE = os.getenv("HH_BOT_PROFILE", str(BASE_DIR / "chrome_profile"))
+CHROME_PATH = os.getenv("CHROME_PATH", r"C:\Program Files\Google\Chrome\Application\chrome.exe")
+
+TIMEOUT = 60000
+PAGE_LOAD_WAIT = 5
+PAUSE_BETWEEN_VACANCIES = (7, 14)
+PAUSE_AFTER_APPLY = (5, 10)
+
+# ============================================
+# AI НАСТРОЙКИ
+# ============================================
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS", "")
+
+AI_PRIMARY = "deepseek"
+AI_FALLBACK = "gigachat"
+
+# ============================================
+# РЕЖИМЫ РАБОТЫ
+# ============================================
+VALIDATION_MODE = os.getenv("VALIDATION_MODE", "revaz")
+SEARCH_MODE = os.getenv("SEARCH_MODE", "smart")
+
+MAX_APPLIES_PER_SESSION = int(os.getenv("MAX_APPLIES_PER_SESSION", "18"))
+MAX_APPLIES_PER_DAY = int(os.getenv("MAX_APPLIES_PER_DAY", "100"))
+
+# ============================================
+# TELEGRAM НАСТРОЙКИ
+# ============================================
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID", "")
+
+# ============================================
+# ПОИСКОВАЯ ССЫЛКА
+# ============================================
+SEARCH_URL = "https://hh.ru/search/vacancy?text=Project+manager+it+%D1%81%D1%82%D0%B0%D0%B6%D0%B5%D1%80&excluded_text=&area=1&salary=&salary=&currency_code=RUR&experience=doesNotMatter&order_by=relevance&search_period=0&items_on_page=50&L_save_area=true&hhtmFrom=vacancy_search_filter"
+
+# ============================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================
+def get_random_pause(pause_range: tuple) -> float:
+    return random.uniform(*pause_range)
+
+def ensure_dirs():
+    dirs = [DATA_DIR, LOGS_DIR, USER_DATA_DIR]
+    for d in dirs:
+        d.mkdir(parents=True, exist_ok=True)
+
+ensure_dirs()
+============================================================
+config\__init__.py
+============================================================
+
+============================================================
+core\ai_client.py
+============================================================
+"""
+AI-клиент только для DeepSeek с асинхронными обёртками
+"""
+import os
+import asyncio
+from typing import Optional
+from dotenv import load_dotenv
+from openai import OpenAI
+from config.settings import DEEPSEEK_API_KEY
+from core.logger import logger, log_ai
+
+load_dotenv()
+
+class AIClient:
+    def __init__(self):
+        self.deepseek_client = None
+        self._init_deepseek()
+    
+    def _init_deepseek(self):
+        if DEEPSEEK_API_KEY:
+            try:
+                self.deepseek_client = OpenAI(
+                    api_key=DEEPSEEK_API_KEY,
+                    base_url="https://api.deepseek.com/v1"
+                )
+                logger.info("✅ DeepSeek подключен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка подключения DeepSeek: {e}")
+                self.deepseek_client = None
+        else:
+            logger.warning("⚠️ DeepSeek API ключ не найден")
+    
+    def generate_with_deepseek(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500) -> str:
+        if not self.deepseek_client:
+            raise Exception("DeepSeek не настроен")
+        
+        response = self.deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        result = response.choices[0].message.content.strip()
+        log_ai("DeepSeek", prompt[:200], result)
+        return result
+    
+    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500) -> str:
+        return self.generate_with_deepseek(prompt, temperature, max_tokens)
+    
+    def is_available(self) -> bool:
+        return self.deepseek_client is not None
+
+_ai_client: Optional[AIClient] = None
+_init_lock = asyncio.Lock()
+
+async def get_ai_client_async() -> AIClient:
+    """Асинхронное получение AI-клиента (инициализация в отдельном потоке)"""
+    global _ai_client
+    if _ai_client is None:
+        async with _init_lock:
+            if _ai_client is None:
+                from core.async_executor import run_in_thread
+                _ai_client = await run_in_thread(_init_ai_client_sync)
+    return _ai_client
+
+def _init_ai_client_sync() -> AIClient:
+    """Синхронная инициализация (вызывается в потоке)"""
+    return AIClient()
+
+def get_ai_client() -> AIClient:
+    """Синхронное получение (для использования в потоках сессий)"""
+    global _ai_client
+    if _ai_client is None:
+        _ai_client = AIClient()
+    return _ai_client
+============================================================
+core\async_executor.py
+============================================================
+"""
+Асинхронный исполнитель для CPU/IO-bound задач в Telegram-боте.
+Использует ThreadPoolExecutor для неблокирующего выполнения синхронных функций.
+"""
+import asyncio
+import concurrent.futures
+from core.logger import logger
+
+# Пул из 10 потоков (можно увеличить при необходимости)
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="tg_worker")
+
+async def run_in_thread(func, *args, **kwargs):
+    """
+    Выполняет синхронную функцию func(*args, **kwargs) в отдельном потоке,
+    не блокируя event loop.
+    """
+    loop = asyncio.get_running_loop()
+    try:
+        return await loop.run_in_executor(_executor, lambda: func(*args, **kwargs))
+    except Exception as e:
+        logger.error(f"Ошибка в потоке {func.__name__}: {e}")
+        raise
+============================================================
+core\browser.py
+============================================================
+import subprocess
+import time
+from pathlib import Path
+from contextlib import contextmanager
+from playwright.sync_api import sync_playwright
+from config.settings import CHROME_PATH, TIMEOUT, BASE_DIR
+from core.logger import logger
+
+
+def get_user_profile_path(telegram_id: int) -> str:
+    """Возвращает путь к папке профиля Chrome для пользователя"""
+    profile_dir = BASE_DIR / "chrome_profiles" / str(telegram_id)
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    return str(profile_dir)
+
+
+@contextmanager
+def launch_browser(telegram_id: int = None, headless: bool = False):
+    """
+    Запускает браузер с профилем пользователя.
+    Если telegram_id не указан, используется профиль по умолчанию.
+    """
+    if telegram_id:
+        user_data_dir = get_user_profile_path(telegram_id)
+    else:
+        user_data_dir = str(BASE_DIR / "chrome_profile")
+        # Убедимся, что папка существует
+        Path(user_data_dir).mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Запуск браузера с профилем: {user_data_dir}")
+
+    # Не убиваем все Chrome, чтобы не мешать другим сессиям
+    # subprocess.run("taskkill /f /im chrome.exe 2>nul", shell=True)
+    # time.sleep(2)
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch_persistent_context(
+            user_data_dir=user_data_dir,
+            headless=headless,
+            slow_mo=800,
+            executable_path=CHROME_PATH,
+            viewport={'width': 1280, 'height': 800},
+            args=[
+                '--no-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage'
+            ]
+        )
+        page = browser.pages[0] if browser.pages else browser.new_page()
+        page.set_default_timeout(TIMEOUT)
+
+        page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+        """)
+
+        logger.info("Браузер запущен")
+        try:
+            yield page
+        finally:
+            logger.info("Закрытие браузера...")
+            try:
+                browser.close()
+            except Exception:
+                pass
+============================================================
+core\logger.py
+============================================================
+"""
+Расширенное логирование для HH Bot Pro с общим логом all.log
+"""
+import logging
+import sys
+from pathlib import Path
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
+from typing import Optional
+
+from config.settings import LOGS_DIR
+
+# Форматы
+CONSOLE_FORMAT = "%(asctime)s | %(levelname)-8s | %(message)s"
+FILE_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s"
+DATE_FORMAT = "%H:%M:%S"
+FILE_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+class HHLogger:
+    _instance: Optional['HHLogger'] = None
+    _logger: Optional[logging.Logger] = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._setup_logger()
+        return cls._instance
+
+    def _setup_logger(self):
+        self._logger = logging.getLogger("HHBot")
+        self._logger.setLevel(logging.DEBUG)
+        self._logger.handlers.clear()
+
+        # Консоль (INFO и выше)
+        console = logging.StreamHandler(sys.stdout)
+        console.setLevel(logging.INFO)
+        console.setFormatter(logging.Formatter(CONSOLE_FORMAT, DATE_FORMAT))
+        self._logger.addHandler(console)
+
+        # Основной файл (DEBUG и выше)
+        debug = RotatingFileHandler(LOGS_DIR / "debug.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        debug.setLevel(logging.DEBUG)
+        debug.setFormatter(logging.Formatter(FILE_FORMAT, FILE_DATE_FORMAT))
+        self._logger.addHandler(debug)
+
+        # Ошибки (ERROR и выше)
+        error = RotatingFileHandler(LOGS_DIR / "error.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        error.setLevel(logging.ERROR)
+        error.setFormatter(logging.Formatter(FILE_FORMAT, FILE_DATE_FORMAT))
+        self._logger.addHandler(error)
+
+        # ========== ОБЩИЙ ЛОГ ДЛЯ GITHUB (INFO и выше) ==========
+        all_handler = RotatingFileHandler(LOGS_DIR / "all.log", maxBytes=10*1024*1024, backupCount=3, encoding='utf-8')
+        all_handler.setLevel(logging.INFO)
+        all_handler.setFormatter(logging.Formatter(FILE_FORMAT, FILE_DATE_FORMAT))
+        self._logger.addHandler(all_handler)
+
+        # Логгер откликов
+        self._apply_logger = logging.getLogger("HHBot.Applies")
+        self._apply_logger.setLevel(logging.INFO)
+        apply_handler = RotatingFileHandler(LOGS_DIR / "applies.log", maxBytes=10*1024*1024, backupCount=10, encoding='utf-8')
+        apply_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._apply_logger.addHandler(apply_handler)
+        self._apply_logger.propagate = False
+
+        # Логгер AI
+        self._ai_logger = logging.getLogger("HHBot.AI")
+        self._ai_logger.setLevel(logging.DEBUG)
+        ai_handler = RotatingFileHandler(LOGS_DIR / "ai.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        ai_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._ai_logger.addHandler(ai_handler)
+        self._ai_logger.propagate = False
+
+        # Логгер HTTP (Telegram API)
+        self._http_logger = logging.getLogger("HHBot.HTTP")
+        self._http_logger.setLevel(logging.DEBUG)
+        http_handler = RotatingFileHandler(LOGS_DIR / "http.log", maxBytes=10*1024*1024, backupCount=3, encoding='utf-8')
+        http_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._http_logger.addHandler(http_handler)
+        self._http_logger.propagate = False
+
+        # Логгер браузера
+        self._browser_logger = logging.getLogger("HHBot.Browser")
+        self._browser_logger.setLevel(logging.DEBUG)
+        browser_handler = RotatingFileHandler(LOGS_DIR / "browser.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        browser_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._browser_logger.addHandler(browser_handler)
+        self._browser_logger.propagate = False
+
+    def get_logger(self): return self._logger
+    def get_apply_logger(self): return self._apply_logger
+    def get_ai_logger(self): return self._ai_logger
+    def get_http_logger(self): return self._http_logger
+    def get_browser_logger(self): return self._browser_logger
+
+_logger_instance = HHLogger()
+logger = _logger_instance.get_logger()
+apply_logger = _logger_instance.get_apply_logger()
+ai_logger = _logger_instance.get_ai_logger()
+http_logger = _logger_instance.get_http_logger()
+browser_logger = _logger_instance.get_browser_logger()
+
+def log_startup():
+    logger.info("=" * 60)
+    logger.info(f"🚀 HH BOT PRO STARTED | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=" * 60)
+
+def log_shutdown(total_applies: int = 0):
+    logger.info("=" * 60)
+    logger.info(f"🏁 HH BOT PRO FINISHED | Откликов: {total_applies}")
+    logger.info("=" * 60)
+
+def log_apply(vacancy_id: str, title: str, status: str, letter_preview: str = "", error: str = ""):
+    if status == "sent":
+        msg = f"✅ SENT | {vacancy_id} | {title[:50]}"
+        if letter_preview: msg += f"\n   📝 {letter_preview[:100]}..."
+    elif status == "error":
+        msg = f"❌ ERROR | {vacancy_id} | {title[:50]} | {error}"
+    elif status == "skip":
+        msg = f"⏭️ SKIP | {vacancy_id} | {title[:50]}"
+    elif status == "revaz_skip":
+        msg = f"🛡️ REVAZ SKIP | {vacancy_id} | {title[:50]} | {error}"
+    else:
+        msg = f"ℹ️ {status} | {vacancy_id} | {title[:50]}"
+    apply_logger.info(msg)
+
+def log_ai(prompt_type: str, input_data: str, output: str, error: str = None):
+    sep = "-" * 50
+    if error:
+        ai_logger.error(f"{sep}\n🔴 ERROR | {prompt_type}\nInput: {input_data[:200]}...\nError: {error}\n{sep}")
+    else:
+        ai_logger.debug(f"{sep}\n🟢 {prompt_type}\nInput: {input_data[:500]}...\nOutput: {output[:500]}...\n{sep}")
+
+def log_http(method: str, url: str, status: int = None, error: str = None):
+    if error:
+        http_logger.error(f"{method} {url} | ERROR: {error}")
+    else:
+        http_logger.debug(f"{method} {url} | Status: {status}")
+
+def log_browser(action: str, url: str = "", details: str = ""):
+    browser_logger.debug(f"🌐 {action} | {url} | {details}")
+============================================================
+core\prompts.py
+============================================================
+"""
+Промпты для AI-агентов HH Bot Pro
+"""
+
+# ============================================
+# СТРУКТУРИРОВАННОЕ ПИСЬМО (ВОЗВРАЩЁННЫЙ РАЗВЁРНУТЫЙ СТИЛЬ)
+# ============================================
+COVER_LETTER_STRUCTURED = """
+Ты — Junior Product Manager, который чувствует продукт и пользователя. Ты создавал продукт в одиночку через vibe coding и знаешь, что каждая фича должна быть удобной и понятной. Пишешь живое сопроводительное письмо, опираясь только на факты из резюме.
+
+**ГЛАВНЫЙ ЗАПРЕТ (провал при нарушении):**
+НЕЛЬЗЯ начинать письмо со слов «Вижу», «Смотрю», «Ознакомился», «Читаю», «Понимаю, что ключевая задача» или любых других фраз, которые звучат как «я прочитал вакансию». Начинай сразу с сути: с твоего опыта, с понимания задачи, с конкретного результата.
+
+**ОСТАЛЬНЫЕ ЗАПРЕТЫ:**
+- НЕЛЬЗЯ упоминать название компании-работодателя из вакансии.
+- НЕЛЬЗЯ писать обращения, подписи, контакты, «С уважением».
+- НЕЛЬЗЯ перечислять названия компаний из резюме — только обобщения: «в ритейле», «в IT-проектах», «в digital-агентстве».
+- НЕЛЬЗЯ выдумывать цифры и факты, которых нет в резюме.
+
+**ПРИНЦИПЫ НАПИСАНИЯ:**
+1. **Стартуй с ходу, без разогрева.** Первое предложение должно сразу нести смысл: твой опыт, результат, понимание задачи. Никаких «я прочитал», «мне интересно», «вижу, что...».
+2. **Покажи самостоятельность.** Упомяни, что проект создавался с нуля через vibe coding — это доказывает твою способность быстро разрабатывать без большой команды, при этом держа в голове удобство для конечного пользователя.
+3. **Веди рассказ через заботу о пользователе.** Когда приводишь факты, добавляй контекст: почему это улучшение сделало жизнь пользователя проще, интерфейс — интуитивнее, а путь — короче.
+4. **Привязывай опыт к задачам вакансии.** Покажи, как твои навыки управления продуктом, аналитики или проектной работы решают их боли — и как это в конечном счёте отразится на опыте их пользователей или клиентов.
+5. **Конец — призыв к действию.** «Готов обсудить, как этот опыт применить у вас» или «Готов детально обсудить на собеседовании» — естественное завершение разговора.
+
+**СТИЛЬ:** деловой, живой, без воды. Максимум 3 коротких абзаца, общий объём не более 350 символов. Пиши так, будто ты лично общаешься с будущим руководителем: уважительно, но без лести, с огнём в глазах и искренним интересом к продукту и людям, для которых он создаётся.
+
+**Резюме кандидата:**
+{resume}
+
+**Вакансия:**
+{title}
+
+**Требования:**
+{description}
+
+Напиши ТОЛЬКО письмо (без дополнительных пояснений и кавычек):
+"""
+
+# ============================================
+# РЕВАЗ — ФОРМИРОВАНИЕ ЧЕК-ЛИСТА
+# ============================================
+REVAZ_CHECKLIST_PROMPT = """
+Ты — Реваз, технический скринер вакансий. Выдели требования из вакансии для проверки по резюме.
+
+**Вакансия:**
+{vacancy_title}
+{vacancy_description}
+
+**Резюме (для контекста):**
+{resume}
+
+Верни JSON-массив объектов с полями requirement и critical (true/false).
+critical=true только для явно обязательных требований.
+Максимум 7 пунктов, без софт-скиллов.
+Ответь ТОЛЬКО JSON-массивом.
+"""
+
+# ============================================
+# РЕВАЗ — ПРОВЕРКА РЕЗЮМЕ ПО ЧЕК-ЛИСТУ
+# ============================================
+REVAZ_VERDICT_PROMPT = """
+Ты — Реваз. Проверь резюме по чек-листу.
+
+**Вакансия:** {vacancy_title}
+{vacancy_description}
+
+**Чек-лист:**
+{checklist}
+
+**Резюме:**
+{resume}
+
+Для каждого пункта напиши ✅ или ❌ с пометкой (critical/normal).
+Вынеси вердикт: PASS / FAIL с краткой причиной.
+
+Ответь в формате:
+ВЕРДИКТ: ...
+ПРИЧИНА: ...
+ДЕТАЛИ: ...
+"""
+
+# ============================================
+# АЛИНА — ПРОВЕРКА СТИЛЯ (НЕ ИСПОЛЬЗУЕТСЯ, ОСТАВЛЕНО ДЛЯ СОВМЕСТИМОСТИ)
+# ============================================
+ALINA_VALIDATE_PROMPT = """
+Ты — Алина. Проверь текст сопровождения.
+Критерии: нет обращений/подписей/контактов, 150-400 символов, конкретика, мужской род.
+Ответь: ОЦЕНКА: X/10, ПРОБЛЕМЫ: ..., ВЕРДИКТ: SEND / IMPROVE
+"""
+
+# ============================================
+# АЛИНА — УЛУЧШЕНИЕ ТЕКСТА (НЕ ИСПОЛЬЗУЕТСЯ)
+# ============================================
+ALINA_IMPROVE_PROMPT = """
+Ты — Алина. Перепиши текст, исправив проблемы, но соблюдая запреты.
+Напиши ТОЛЬКО исправленный текст.
+"""
+
+# ============================================
+# ОТВЕТ НА ТЕСТОВЫЙ ВОПРОС
+# ============================================
+TEST_ANSWER_PROMPT = """
+Ответь на вопрос работодателя (1-2 предложения).
+Вопрос: {question}
+Резюме: {resume}
+Ответ:
+"""
+
+# ============================================
+# АЛИНА — АНАЛИЗ РЕЗЮМЕ (БЕЗ ВЫДУМКИ)
+# ============================================
+RESUME_ANALYSIS_PROMPT = """
+Ты — Алина, строгий HR. Проанализируй резюме, работая ТОЛЬКО с имеющейся информацией.
+
+**Резюме:**
+{resume}
+
+Оценка от 1 до 10, сильные стороны, слабые стороны (рекомендации по формулировкам, без придумывания), ключевые слова для ATS, JSON с improvements.
+НЕ ПИШИ улучшенную версию резюме в этом ответе!
+"""
+
+# ============================================
+# АЛИНА — ГЕНЕРАЦИЯ УЛУЧШЕННОГО РЕЗЮМЕ (БЕЗ ВЫДУМКИ)
+# ============================================
+RESUME_IMPROVE_PROMPT = """
+Ты — Алина. Перепиши резюме, улучшив структуру и стиль, НЕ добавляя новых фактов.
+**Исходное резюме:** {original_resume}
+**Инструкции:** {improvements}
+Напиши ПОЛНОСТЬЮ готовое резюме.
+"""
+
+# ============================================
+# AI-ПОДБОР ДОЛЖНОСТЕЙ
+# ============================================
+JOB_SUGGESTIONS_PROMPT = """
+Ты — карьерный консультант. На основе резюме предложи 5-10 названий должностей для поиска на hh.ru.
+**Резюме:** {resume}
+Выведи ТОЛЬКО JSON-массив строк.
+"""
+
+# ============================================
+# СВЕТЛАНА ВИКТОРОВНА — ПРОВЕРКА РУССКОГО ЯЗЫКА
+# ============================================
+SVETLANA_VALIDATE_PROMPT = """
+Ты — Светлана Викторовна. Проверь текст на грамматику и стиль.
+**Письмо:** {letter}
+Если есть ошибки, напиши ИСПРАВЛЕННОЕ ПИСЬМО. Если ошибок нет, напиши «ОШИБОК НЕТ».
+"""
+============================================================
+core\session_manager.py
+============================================================
+"""
+Менеджер сессий для многопользовательской работы
+"""
+import threading
+import asyncio
+from typing import Dict, Optional
+from core.logger import logger
+import bot.utils.helpers as tb_helpers
+
+
+class SessionManager:
+    """Управляет потоками браузера для каждого пользователя"""
+
+    def __init__(self):
+        self._sessions: Dict[int, threading.Thread] = {}
+        self._lock = threading.Lock()
+
+    def start_session(self, telegram_id: int, job_title: str, limit: int, custom_url: str = None) -> bool:
+        with self._lock:
+            if telegram_id in self._sessions and self._sessions[telegram_id].is_alive():
+                logger.warning(f"Сессия для {telegram_id} уже активна")
+                return False
+
+            thread = threading.Thread(
+                target=self._run_hh_session,
+                args=(telegram_id, job_title, limit, custom_url),
+                daemon=True
+            )
+            self._sessions[telegram_id] = thread
+            thread.start()
+            logger.info(f"Сессия для {telegram_id} запущена")
+            return True
+
+    def stop_session(self, telegram_id: int):
+        with self._lock:
+            if telegram_id in self._sessions:
+                tb_helpers.user_stop_flags[telegram_id] = True
+                logger.info(f"Отправлен сигнал остановки для {telegram_id}")
+            else:
+                logger.warning(f"Нет активной сессии для {telegram_id}")
+
+    def is_session_running(self, telegram_id: int) -> bool:
+        with self._lock:
+            thread = self._sessions.get(telegram_id)
+            return thread is not None and thread.is_alive()
+
+    def _run_hh_session(self, telegram_id: int, job_title: str, limit: int, custom_url: str = None):
+        import time
+        import random
+        from urllib.parse import quote
+        from core.browser import launch_browser
+        from core.ai_client import get_ai_client
+        from services.hh_parser import collect_vacancies_from_url, get_vacancy_description
+        from services.applier import apply_to_vacancy
+        from services.letter_generator import LetterGenerator
+        from services.revaz_agent import RevazAgent
+        from services.alina_validator import AlinaValidator
+        from storage.history_repository import add_application, get_applied_ids
+        from storage.database import SyncDatabase
+
+        tb_helpers.user_sessions_active[telegram_id] = True
+        tb_helpers.user_stop_flags[telegram_id] = False
+
+        try:
+            user = SyncDatabase.get_user(telegram_id)
+            if not user:
+                logger.error(f"Пользователь {telegram_id} не найден")
+                return
+            resume = SyncDatabase.get_active_resume(telegram_id)
+            if not resume:
+                logger.error(f"У пользователя {telegram_id} нет активного резюме")
+                return
+
+            settings = user.get('settings', {})
+            manual = settings.get('manual_mode', False)
+            tb_helpers.user_manual_mode[telegram_id] = manual
+            logger.info(f"Режим для {telegram_id}: manual_mode = {manual}")
+
+            if custom_url:
+                search_url = custom_url
+                logger.info(f"Используем кастомную ссылку: {search_url}")
+            else:
+                search_query = quote(job_title)
+                search_url = f"https://hh.ru/search/vacancy?text={search_query}&area=1"
+
+            logger.info(f"Сессия для {telegram_id}, лимит: {limit}, ручной режим: {manual}")
+
+            ai_client = get_ai_client()
+            letter_gen = LetterGenerator()
+            revaz = RevazAgent(resume)
+            alina = AlinaValidator()
+
+            applied_ids = get_applied_ids(telegram_id)
+            total_applies = 0
+
+            with launch_browser(telegram_id=telegram_id) as page:
+                tb_helpers.set_global_page(page)
+                tb_helpers.set_global_ai_client(ai_client)
+                tb_helpers.set_global_resume(resume)
+
+                time.sleep(random.uniform(2, 5))
+                logger.info(f"🔍 Поиск: {search_url}")
+                vacancies = collect_vacancies_from_url(page, search_url, telegram_id, chat_id=telegram_id, max_pages=3)
+                if not vacancies:
+                    logger.warning("Вакансий не найдено")
+                    return
+
+                for vac in vacancies[:limit]:
+                    if tb_helpers.user_stop_flags.get(telegram_id, False):
+                        logger.info(f"Сессия для {telegram_id} остановлена пользователем")
+                        break
+
+                    if vac['id'] in applied_ids:
+                        continue
+
+                    logger.info(f"🎯 {vac['title'][:50]}")
+                    try:
+                        vac_text = get_vacancy_description(page, vac['url'])
+                        if not vac_text:
+                            vac_text = ""
+
+                        passed, reason = revaz.check(vac, vac_text)
+                        revaz_score = 7 if passed else 4
+
+                        if not passed and not manual:
+                            add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'revaz_skip', error=reason)
+                            continue
+
+                        letter = letter_gen.generate(resume, vac_text, vac['title'])
+
+                        vac['company'] = vac.get('company', 'Не указана')
+                        vac['salary'] = vac.get('salary', 'Не указана')
+                        vac['area'] = vac.get('area', 'Не указан')
+
+                        if manual:
+                            logger.info(f"🟡 Ручной режим: отправка карточки для {vac['title'][:40]}")
+                            tb_helpers.manual_decisions.pop(vac['id'], None)
+                            tb_helpers.user_decision_events[telegram_id].clear()
+
+                            if tb_helpers.telegram_loop:
+                                asyncio.run_coroutine_threadsafe(
+                                    tb_helpers.send_vacancy_card(telegram_id, vac, letter, revaz_score, reason[:100]),
+                                    tb_helpers.telegram_loop
+                                )
+                            else:
+                                logger.error("Нет event loop для отправки карточки")
+                                continue
+
+                            decision = None
+                            start_wait = time.time()
+                            event = tb_helpers.user_decision_events[telegram_id]
+                            while time.time() - start_wait < 120:
+                                if event.wait(timeout=1):
+                                    decision = tb_helpers.manual_decisions.get(vac['id'])
+                                    break
+                                if tb_helpers.user_stop_flags.get(telegram_id, False):
+                                    break
+
+                            if decision == "apply":
+                                success = apply_to_vacancy(page, vac, letter, resume, ai_client)
+                                if success:
+                                    total_applies += 1
+                                    add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'sent', letter)
+                                    logger.info(f"✅ Отклик отправлен (всего {total_applies})")
+                                else:
+                                    add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', letter, error="отправка не удалась")
+                            elif decision == "skip":
+                                add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'skipped', letter)
+                                logger.info(f"⏭️ Вакансия пропущена пользователем")
+                            elif decision == "regen":
+                                new_letter = letter_gen.generate(resume, vac_text, vac['title'])
+                                new_letter = alina.validate_and_improve(new_letter, resume, vac_text, vac['title'])
+                                tb_helpers.manual_decisions.pop(vac['id'], None)
+                                event.clear()
+                                if tb_helpers.telegram_loop:
+                                    asyncio.run_coroutine_threadsafe(
+                                        tb_helpers.send_vacancy_card(telegram_id, vac, new_letter, revaz_score, reason[:100]),
+                                        tb_helpers.telegram_loop
+                                    )
+                                start_wait2 = time.time()
+                                while time.time() - start_wait2 < 120:
+                                    if event.wait(timeout=1):
+                                        decision = tb_helpers.manual_decisions.get(vac['id'])
+                                        break
+                                if decision == "apply":
+                                    success = apply_to_vacancy(page, vac, new_letter, resume, ai_client)
+                                    if success:
+                                        total_applies += 1
+                                        add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'sent', new_letter)
+                                        logger.info(f"✅ Отклик отправлен после перегенерации")
+                                elif decision == "skip":
+                                    add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'skipped', new_letter)
+                            else:
+                                logger.warning(f"Решение не получено, пропускаем вакансию")
+                                add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'skipped', letter, error="timeout")
+                            continue
+
+                        # Автоматический режим
+                        success = apply_to_vacancy(page, vac, letter, resume, ai_client)
+                        if success:
+                            total_applies += 1
+                            add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'sent', letter)
+                            logger.info(f"✅ Отклик отправлен (всего {total_applies})")
+                            if tb_helpers.telegram_loop:
+                                asyncio.run_coroutine_threadsafe(
+                                    tb_helpers.send_auto_apply_card(telegram_id, vac, letter),
+                                    tb_helpers.telegram_loop
+                                )
+                        else:
+                            add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', letter, error="отправка не удалась")
+                    except Exception as e:
+                        logger.error(f"Ошибка: {e}")
+                        add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', error=str(e))
+                        continue
+
+                    time.sleep(random.uniform(5, 10))
+
+        except Exception as e:
+            logger.exception(f"Критическая ошибка в сессии {telegram_id}: {e}")
+        finally:
+            tb_helpers.user_sessions_active[telegram_id] = False
+            tb_helpers.user_stop_flags.pop(telegram_id, None)
+            tb_helpers.user_manual_mode.pop(telegram_id, None)
+            with self._lock:
+                if telegram_id in self._sessions:
+                    del self._sessions[telegram_id]
+            logger.info(f"Сессия для {telegram_id} завершена, отправлено {total_applies}")
+
+
+session_manager = SessionManager()
+============================================================
+core\__init__.py
+============================================================
+
+============================================================
+services\alina_validator.py
+============================================================
+"""
+Алина — строгий HR, который не прощает воды
+"""
+from core.ai_client import get_ai_client
+from core.prompts import ALINA_VALIDATE_PROMPT, ALINA_IMPROVE_PROMPT
+from core.logger import logger
+
+class AlinaValidator:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def validate_and_improve(self, letter: str, resume: str, vac_text: str, title: str) -> str:
+        # Быстрая проверка на запрещёнку
+        forbidden = ['уважаемый', 'с уважением', 'буду рад', 'желаю успехов',
+                     'меня заинтересовала', 'прошу рассмотреть', 'здравствуйте', 'добрый день']
+        letter_lower = letter.lower()
+        if any(word in letter_lower for word in forbidden):
+            return self._force_improve(letter, resume, title,
+                                       "Убрать все запрещённые слова, подпись, писать от мужского лица, сразу с сути.")
+        
+        # Проверка на женский род
+        female_indicators = ['работала', 'координировала', 'внедряла', 'сократила', 'занималась', 'была', 'стала']
+        if any(word in letter_lower for word in female_indicators):
+            return self._force_improve(letter, resume, title,
+                                       "Писать от МУЖСКОГО лица (работал, координировал, внедрил).")
+
+        # Проверка на наличие цифр/фактов
+        if not any(char.isdigit() for char in letter) and not any(w in letter_lower for w in ['процент', 'клиент', 'проект', 'сократил', 'увеличил']):
+            return self._force_improve(letter, resume, title,
+                                       "Добавить конкретику: цифры, результаты, факты из резюме. Без воды.")
+        
+        # Проверка длины
+        words = len(letter.split())
+        if words < 20 or words > 100:
+            return self._force_improve(letter, resume, title,
+                                       f"Сделать объём 30-80 слов (сейчас {words}). Убрать воду или добавить конкретики.")
+        
+        # Полная проверка AI
+        prompt = ALINA_VALIDATE_PROMPT.format(letter=letter, vacancy_title=title)
+        verdict = self.ai.generate(prompt, max_tokens=200)
+        if "SEND" in verdict.upper() and "IMPROVE" not in verdict.upper():
+            return letter
+        
+        return self._force_improve(letter, resume, title, verdict)
+    
+    def _force_improve(self, letter: str, resume: str, title: str, problems: str) -> str:
+        improve_prompt = ALINA_IMPROVE_PROMPT.format(
+            original_letter=letter,
+            problems=problems,
+            resume=resume,
+            vacancy_title=title
+        )
+        improved = self.ai.generate(improve_prompt, max_tokens=500)
+        logger.info("Алина жёстко улучшила письмо")
+        return improved
+============================================================
+services\applier.py
+============================================================
+"""
+Отправка откликов на HH с обработкой тестовых вопросов (улучшенная)
+"""
+import re
+import time
+from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
+from core.logger import logger
+from core.prompts import TEST_ANSWER_PROMPT
+
+
+def apply_to_vacancy(page: Page, vacancy: dict, cover_letter: str, resume: str, ai_client) -> bool:
+    logger.info(f"Открываю вакансию: {vacancy['title'][:50]}...")
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            page.goto(vacancy['url'], timeout=60000)
+            page.wait_for_load_state('domcontentloaded')
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.warning(f"Не смог загрузить вакансию после {max_retries} попыток: {e}")
+                return False
+            logger.debug(f"Повторная загрузка страницы (попытка {attempt + 2})...")
+            time.sleep(5)
+    
+    time.sleep(3)
+    
+    btn = None
+    selectors = [
+        'a[data-qa="vacancy-response-link-top"]',
+        'a[data-qa="vacancy-response-link"]',
+        'button[data-qa="vacancy-response-button"]',
+        'button:has-text("Откликнуться")',
+        'button:has-text("Отклик")',
+        'a:has-text("Откликнуться")',
+        'span:has-text("Откликнуться")'
+    ]
+    for sel in selectors:
+        try:
+            btn = page.wait_for_selector(sel, timeout=5000)
+            if btn:
+                logger.debug(f"Найдена кнопка отклика: {sel}")
+                break
+        except PlaywrightTimeoutError:
+            continue
+    
+    if not btn:
+        logger.warning("Кнопка 'Откликнуться' не найдена")
+        return False
+    
+    try:
+        btn.scroll_into_view_if_needed()
+        btn.click()
+        logger.debug("Кнопка отклика нажата")
+        time.sleep(5)   # увеличенная пауза
+    except Exception as e:
+        logger.warning(f"Не удалось нажать кнопку: {e}")
+        return False
+    
+    # Ждем появления модального окна
+    try:
+        page.wait_for_selector('div[data-qa="vacancy-response-popup"]', timeout=7000)
+        logger.debug("Модальное окно появилось")
+    except PlaywrightTimeoutError:
+        logger.warning("Модальное окно не появилось, продолжаем...")
+    
+    try:
+        add_letter_btn = page.query_selector('button:has-text("Добавить сопроводительное")')
+        if add_letter_btn:
+            add_letter_btn.click()
+            logger.debug("Нажата кнопка 'Добавить сопроводительное'")
+            time.sleep(2)
+    except Exception:
+        pass
+
+    input_fields = page.query_selector_all('input[type="text"], input[type="textarea"], textarea')
+    for field in input_fields:
+        try:
+            placeholder = field.get_attribute('placeholder') or ''
+            label = field.get_attribute('aria-label') or ''
+            name = field.get_attribute('name') or ''
+            
+            current_value = field.input_value() if field.evaluate('el => el.value') else ''
+            if current_value:
+                continue
+            
+            combined = (placeholder + label + name).lower()
+            question_keywords = ['почему', 'тест', 'задание', 'вопрос', 'ответ', 'why', 'test', 'задача']
+            if any(kw in combined for kw in question_keywords):
+                prompt = TEST_ANSWER_PROMPT.format(
+                    question=placeholder or label or "Почему вы хотите работать у нас?",
+                    resume=resume
+                )
+                answer = ai_client.generate(prompt, max_tokens=150)
+                field.fill(answer)
+                logger.debug(f"Заполнен тестовый вопрос: {placeholder[:30]}...")
+                time.sleep(1)
+        except Exception as e:
+            logger.debug(f"Не удалось обработать поле вопроса: {e}")
+            continue
+
+    textarea = None
+    textarea_selectors = [
+        'textarea[data-qa="vacancy-response-popup-form-letter-input"]',
+        'textarea[data-qa="vacancy-response-letter"]',
+        'div[data-qa="vacancy-response-letter"] textarea',
+        'form[action*="vacancy_response"] textarea',
+        'textarea'
+    ]
+    for sel in textarea_selectors:
+        try:
+            textarea = page.wait_for_selector(sel, timeout=5000)
+            if textarea:
+                logger.debug(f"Найдено поле письма: {sel}")
+                break
+        except PlaywrightTimeoutError:
+            continue
+    
+    if textarea:
+        try:
+            textarea.scroll_into_view_if_needed()
+            textarea.fill(cover_letter)
+            logger.debug("Письмо вставлено")
+            time.sleep(2)
+        except Exception as e:
+            logger.warning(f"Не удалось заполнить поле письма: {e}")
+    else:
+        logger.info("Поле для письма не найдено (возможно, не требуется)")
+    
+    submit = None
+    submit_selectors = [
+        'button[data-qa="vacancy-response-submit-popup"]',
+        'button:has-text("Отправить")',
+        'button:has-text("Откликнуться")',
+        'form[action*="vacancy_response"] button[type="submit"]',
+        'button[data-qa="vacancy-response-submit"]'
+    ]
+    for sel in submit_selectors:
+        try:
+            submit = page.wait_for_selector(sel, timeout=5000)
+            if submit:
+                logger.debug(f"Найдена кнопка отправки: {sel}")
+                break
+        except PlaywrightTimeoutError:
+            continue
+    
+    if submit:
+        try:
+            submit.scroll_into_view_if_needed()
+            submit.click()
+            logger.debug("Кнопка отправки нажата")
+            time.sleep(4)
+            
+            try:
+                page.wait_for_selector('button[data-qa="vacancy-response-submit-popup"]', state='detached', timeout=10000)
+                logger.info("✅ Отклик отправлен (модальное окно закрылось)")
+                return True
+            except PlaywrightTimeoutError:
+                success_msg = page.query_selector('div[data-qa="vacancy-response-success"]')
+                if success_msg:
+                    logger.info("✅ Отклик отправлен (сообщение об успехе)")
+                    return True
+                error_msg = page.query_selector('div[data-qa="vacancy-response-error"]')
+                if error_msg:
+                    logger.error(f"Ошибка отправки: {error_msg.inner_text()}")
+                    return False
+                if not page.query_selector('button[data-qa="vacancy-response-submit-popup"]'):
+                    logger.info("✅ Отклик отправлен (кнопка отправки исчезла)")
+                    return True
+                logger.warning("⚠️ Не удалось подтвердить отправку, считаем неудачей")
+                return False
+        except Exception as e:
+            logger.warning(f"Ошибка при отправке: {e}")
+            return False
+    else:
+        logger.warning("Кнопка 'Отправить' не найдена")
+        return False
+============================================================
+services\file_parser.py
+============================================================
+"""
+Извлечение текста из PDF, DOCX, TXT
+"""
+import io
+from pathlib import Path
+from typing import Optional
+import fitz  # PyMuPDF
+from docx import Document
+from core.logger import logger
+
+def extract_text_from_pdf(file_bytes: bytes) -> Optional[str]:
+    """Извлекает текст из PDF-файла"""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+        return text.strip() if text else None
+    except Exception as e:
+        logger.error(f"Ошибка извлечения текста из PDF: {e}")
+        return None
+
+def extract_text_from_docx(file_bytes: bytes) -> Optional[str]:
+    """Извлекает текст из DOCX-файла"""
+    try:
+        doc = Document(io.BytesIO(file_bytes))
+        text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+        return text.strip() if text else None
+    except Exception as e:
+        logger.error(f"Ошибка извлечения текста из DOCX: {e}")
+        return None
+
+def extract_text_from_txt(file_bytes: bytes) -> Optional[str]:
+    """Извлекает текст из TXT-файла"""
+    try:
+        return file_bytes.decode('utf-8').strip()
+    except UnicodeDecodeError:
+        try:
+            return file_bytes.decode('cp1251').strip()
+        except Exception as e:
+            logger.error(f"Ошибка декодирования TXT: {e}")
+            return None
+
+def extract_text_from_file(file_bytes: bytes, file_name: str) -> Optional[str]:
+    """Определяет тип файла по расширению и извлекает текст"""
+    ext = Path(file_name).suffix.lower()
+    if ext == '.pdf':
+        return extract_text_from_pdf(file_bytes)
+    elif ext == '.docx':
+        return extract_text_from_docx(file_bytes)
+    elif ext == '.txt':
+        return extract_text_from_txt(file_bytes)
+    else:
+        logger.warning(f"Неподдерживаемый формат файла: {ext}")
+        return None
+        
+============================================================
+services\hh_parser.py
+============================================================
+"""
+Парсинг вакансий с HH.ru с пагинацией, учётом истории и статусными сообщениями
+"""
+import re
+import time
+import asyncio
+from playwright.sync_api import Page
+from core.logger import logger
+from storage.history_repository import get_applied_ids
+import bot.utils.helpers as tb   # <-- ИЗМЕНЁН ИМПОРТ
+
+
+def collect_vacancies_from_url(page: Page, url: str, telegram_id: int, chat_id: int, max_pages: int = 3) -> list:
+    """
+    Собирает вакансии с нескольких страниц поиска.
+    Возвращает список словарей с id, title, url.
+    max_pages — сколько страниц просмотреть.
+    """
+    all_vacancies = []
+    seen_ids = set()
+    applied_ids = get_applied_ids(telegram_id)
+
+    for page_num in range(1, max_pages + 1):
+        # Формируем URL с номером страницы
+        if page_num == 1:
+            page_url = url
+        else:
+            if '?' in url:
+                page_url = f"{url}&page={page_num}"
+            else:
+                page_url = f"{url}?page={page_num}"
+
+        logger.info(f"Загружаю страницу поиска {page_num}: {page_url[:60]}...")
+
+        # Отправляем статус в Telegram
+        if tb.telegram_loop and chat_id:
+            asyncio.run_coroutine_threadsafe(
+                tb.telegram_bot.send_message(chat_id, f"🔍 Собираю вакансии (страница {page_num})…"),
+                tb.telegram_loop
+            )
+
+        # Повторные попытки загрузки
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                page.goto(page_url, timeout=90000)
+                page.wait_for_load_state('domcontentloaded')
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.warning(f"Не смог загрузить страницу {page_num} после {max_retries} попыток: {e}")
+                    return all_vacancies
+                logger.debug(f"Повторная загрузка страницы {page_num} (попытка {attempt+2})...")
+                time.sleep(5)
+
+        time.sleep(3)
+
+        # Скроллим для подгрузки
+        for _ in range(3):
+            page.keyboard.press("PageDown")
+            time.sleep(1)
+
+        # Ищем карточки вакансий
+        cards = page.query_selector_all('a[data-qa="serp-item__title"]')
+        if not cards:
+            cards = page.query_selector_all('a.bloko-link[href*="/vacancy/"]')
+        if not cards:
+            cards = page.query_selector_all('div.vacancy-serp-item a[href*="/vacancy/"]')
+
+        page_vacancies = 0
+        for card in cards:
+            href = card.get_attribute('href')
+            if not href:
+                continue
+            match = re.search(r'/vacancy/(\d+)', href)
+            if match:
+                vac_id = match.group(1)
+                if vac_id in applied_ids:
+                    continue
+                if vac_id not in seen_ids:
+                    seen_ids.add(vac_id)
+                    title = card.inner_text().strip()
+                    if title:
+                        all_vacancies.append({
+                            'id': vac_id,
+                            'title': title,
+                            'url': f"https://hh.ru/vacancy/{vac_id}"
+                        })
+                        page_vacancies += 1
+
+        logger.info(f"Страница {page_num}: найдено новых вакансий: {page_vacancies}")
+
+        # Проверяем, есть ли следующая страница
+        next_button = page.query_selector('a[data-qa="pager-next"]')
+        if not next_button:
+            logger.info("Достигнут конец пагинации")
+            break
+
+        time.sleep(3)
+
+    logger.info(f"Всего найдено вакансий: {len(all_vacancies)}")
+    return all_vacancies
+
+
+def get_vacancy_description(page: Page, url: str) -> str:
+    """
+    Загружает страницу вакансии и возвращает текст описания.
+    """
+    try:
+        page.goto(url, timeout=60000)
+        page.wait_for_load_state('domcontentloaded')
+        time.sleep(2)
+        desc = page.query_selector('div[data-qa="vacancy-description"]')
+        if desc:
+            return desc.inner_text()
+    except Exception as e:
+        logger.warning(f"Не удалось получить описание вакансии {url}: {e}")
+    return ""
+============================================================
+services\letter_generator.py
+============================================================
+"""
+Генерация сопроводительных писем (без валидаторов)
+"""
+import re
+from core.ai_client import get_ai_client
+from core.prompts import COVER_LETTER_STRUCTURED
+from core.logger import logger, log_ai
+
+class LetterGenerator:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def _clean_letter(self, letter: str) -> str:
+        """Вырезает любой мусор: валидаторские блоки, женский род, подписи"""
+        lines = letter.split('\n')
+        cleaned = []
+        for line in lines:
+            low = line.lower()
+            # Пропускаем строки с мусором
+            if any(x in low for x in [
+                'уважаемый', 'с уважением', 'буду рад', 'желаю успехов',
+                'меня заинтересовала', 'прошу рассмотреть', 'здравствуйте',
+                'благодарю за внимание', 'добрый день',
+                'основные правки', 'исправленное письмо', 'ошибки:',
+                'согласование по роду', 'лексика и стиль', 'грамматика',
+                'координировала', 'работала', 'готова', 'занималась'
+            ]):
+                continue
+            cleaned.append(line)
+        letter = '\n'.join(cleaned).strip()
+        
+        # Убираем префиксы от валидаторов
+        letter = re.sub(r'(?i)^.*исправленное письмо:\s*', '', letter)
+        letter = re.sub(r'(?i)^.*основные правки:.*$', '', letter, flags=re.MULTILINE)
+        letter = re.sub(r'(?i)\s*с уважением,?\s*', '', letter)
+        letter = re.sub(r'(?i)\s*благодарю за внимание,?\s*', '', letter)
+        letter = re.sub(r'\n[А-Я][а-я]+(?:\s+[А-Я][а-я]+)?\s*$', '', letter)
+        
+        if len(letter.split()) < 15:
+            letter = "Вижу, нужен специалист с опытом в вашей сфере. Мой опыт соответствует требованиям. Готов обсудить детали."
+        return letter.strip()
+    
+    def generate(self, resume: str, vac_text: str, title: str) -> str:
+        prompt = COVER_LETTER_STRUCTURED.format(
+            resume=resume,
+            title=title,
+            description=vac_text
+        )
+        try:
+            letter = self.ai.generate(prompt, max_tokens=800)
+            log_ai("COVER_LETTER_STRUCTURED", prompt[:200], letter)
+        except Exception as e:
+            logger.error(f"Ошибка генерации: {e}")
+            return "Вижу, нужен специалист с опытом в вашей сфере. Мой опыт соответствует требованиям. Готов обсудить детали."
+        
+        letter = self._clean_letter(letter)
+        return letter
+============================================================
+services\resume_improver.py
+============================================================
+"""
+Алина — анализ и улучшение резюме (двухэтапный процесс, без выдумки)
+"""
+import re
+import json
+from typing import Dict, List
+from core.ai_client import get_ai_client
+from core.prompts import RESUME_ANALYSIS_PROMPT, RESUME_IMPROVE_PROMPT
+from core.logger import logger
+
+class ResumeImprover:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def analyze(self, resume: str) -> Dict:
+        """
+        Анализирует резюме, получает список улучшений,
+        затем генерирует улучшенную версию через отдельный промпт.
+        """
+        # Шаг 1: анализ
+        analysis_prompt = RESUME_ANALYSIS_PROMPT.format(resume=resume)
+        analysis_response = self.ai.generate(analysis_prompt, max_tokens=1200)
+        
+        result = self._parse_analysis(analysis_response)
+        
+        # Если есть инструкции по улучшению, генерируем улучшенное резюме
+        improvements = result.get('improvements', [])
+        if improvements:
+            improve_prompt = RESUME_IMPROVE_PROMPT.format(
+                original_resume=resume,
+                improvements='\n'.join(f"- {imp}" for imp in improvements)
+            )
+            try:
+                improved_resume = self.ai.generate(improve_prompt, max_tokens=1500)
+                result['improved_resume'] = improved_resume.strip()
+                logger.info("Алина сгенерировала улучшенное резюме по инструкциям")
+            except Exception as e:
+                logger.error(f"Ошибка при генерации улучшенного резюме: {e}")
+                result['improved_resume'] = None
+        else:
+            result['improved_resume'] = None
+        
+        return result
+    
+    def _parse_analysis(self, response: str) -> Dict:
+        """Парсит ответ AI из первого этапа"""
+        result = {
+            'score': 5,
+            'strengths': [],
+            'weaknesses': [],
+            'keywords': [],
+            'improvements': []
+        }
+        
+        lines = response.split('\n')
+        section = None
+        json_str = ""
+        in_json = False
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('ОЦЕНКА:'):
+                match = re.search(r'(\d+)', line)
+                if match:
+                    result['score'] = int(match.group(1))
+            elif line.startswith('СИЛЬНЫЕ СТОРОНЫ:'):
+                section = 'strengths'
+                continue
+            elif line.startswith('СЛАБЫЕ СТОРОНЫ') or line.startswith('СЛАБЫЕ СТОРОНЫ / РЕКОМЕНДАЦИИ:'):
+                section = 'weaknesses'
+                continue
+            elif line.startswith('КЛЮЧЕВЫЕ СЛОВА ДЛЯ ATS:'):
+                keywords_str = line.replace('КЛЮЧЕВЫЕ СЛОВА ДЛЯ ATS:', '').strip()
+                keywords_str = keywords_str.strip('[]')
+                result['keywords'] = [kw.strip() for kw in keywords_str.split(',') if kw.strip()]
+                section = None
+            elif line.startswith('JSON_IMPROVEMENTS:'):
+                json_str = line.replace('JSON_IMPROVEMENTS:', '').strip()
+                in_json = True
+                section = None
+            elif in_json:
+                json_str += " " + line
+            elif section == 'strengths' and line.startswith('-'):
+                result['strengths'].append(line[1:].strip())
+            elif section == 'weaknesses' and line.startswith('-'):
+                result['weaknesses'].append(line[1:].strip())
+        
+        # Парсим JSON с улучшениями
+        if json_str:
+            try:
+                # Ищем JSON объект
+                match = re.search(r'\{.*\}', json_str, re.DOTALL)
+                if match:
+                    data = json.loads(match.group())
+                    result['improvements'] = data.get('improvements', [])
+            except Exception as e:
+                logger.warning(f"Не удалось распарсить JSON улучшений: {e}")
+                # Fallback: используем слабые стороны как улучшения
+                result['improvements'] = result['weaknesses'].copy()
+        
+        return result
+============================================================
+services\revaz_agent.py
+============================================================
+"""
+Реваз - технический скрининг вакансий (смягчённая версия)
+"""
+from core.ai_client import get_ai_client
+from core.prompts import REVAZ_CHECKLIST_PROMPT, REVAZ_VERDICT_PROMPT
+from core.logger import logger
+import json
+
+class RevazAgent:
+    def __init__(self, resume: str):
+        self.ai = get_ai_client()
+        self.resume = resume if resume else "Резюме не загружено."
+        self.strict_mode = False  # можно переключить в настройках позже
+    
+    def check(self, vacancy: dict, vac_text: str) -> tuple[bool, str]:
+        """
+        Возвращает (подходит, причина).
+        В нестрогом режиме всегда возвращает True, но пишет предупреждение.
+        """
+        # Если нет описания вакансии — пропускаем
+        if not vac_text:
+            logger.debug("Реваз: нет описания вакансии, пропускаем")
+            return True, "no_description"
+        
+        # Формируем чек-лист
+        checklist_prompt = REVAZ_CHECKLIST_PROMPT.format(
+            vacancy_title=vacancy['title'],
+            vacancy_description=vac_text,
+            resume=self.resume
+        )
+        try:
+            checklist_str = self.ai.generate(checklist_prompt, max_tokens=500)
+            checklist = json.loads(checklist_str)
+        except Exception as e:
+            logger.debug(f"Реваз не смог сформировать чек-лист: {e}")
+            return True, "checklist_parse_error"
+        
+        if not checklist:
+            logger.debug("Реваз: чек-лист пуст, пропускаем")
+            return True, "empty_checklist"
+        
+        # Проверяем резюме по чек-листу
+        verdict_prompt = REVAZ_VERDICT_PROMPT.format(
+            vacancy_title=vacancy['title'],
+            vacancy_description=vac_text,
+            checklist=json.dumps(checklist, ensure_ascii=False),
+            resume=self.resume
+        )
+        try:
+            verdict_str = self.ai.generate(verdict_prompt, max_tokens=300)
+        except Exception as e:
+            logger.debug(f"Реваз: ошибка при проверке чек-листа: {e}")
+            return True, "verdict_error"
+        
+        # Анализируем вердикт
+        verdict_upper = verdict_str.upper()
+        if "PASS" in verdict_upper:
+            logger.debug(f"Реваз одобрил: {verdict_str[:80]}")
+            return True, "passed"
+        
+        # В строгом режиме отклоняем, иначе просто предупреждаем
+        if self.strict_mode:
+            logger.info(f"🛡️ Реваз строго отклонил: {verdict_str[:80]}")
+            return False, verdict_str[:100]
+        else:
+            logger.warning(f"⚠️ Реваз рекомендует пропустить, но продолжаем: {verdict_str[:80]}")
+            return True, f"warning: {verdict_str[:100]}"
+============================================================
+services\svetlana_validator.py
+============================================================
+"""
+Светлана Викторовна — проверка русского языка
+"""
+from core.ai_client import get_ai_client
+from core.prompts import SVETLANA_VALIDATE_PROMPT
+from core.logger import logger
+
+class SvetlanaValidator:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def validate_and_fix(self, letter: str) -> str:
+        """Проверяет письмо и возвращает исправленную версию"""
+        prompt = SVETLANA_VALIDATE_PROMPT.format(letter=letter)
+        try:
+            response = self.ai.generate(prompt, max_tokens=600)
+            
+            if "ИСПРАВЛЕННОЕ ПИСЬМО:" in response:
+                parts = response.split("ИСПРАВЛЕННОЕ ПИСЬМО:")
+                if len(parts) > 1:
+                    fixed = parts[1].strip()
+                    logger.info("Светлана Викторовна внесла правки")
+                    return fixed
+            
+            if "ОШИБОК НЕТ" in response.upper():
+                logger.info("Светлана Викторовна: ошибок нет")
+            else:
+                logger.warning("Светлана Викторовна: не удалось распарсить ответ")
+            
+            return letter
+        except Exception as e:
+            logger.error(f"Ошибка при проверке Светланой Викторовной: {e}")
+            return letter
+============================================================
+services\__init__.py
+============================================================
+
+============================================================
+storage\database.py
+============================================================
+"""
+Модуль для работы с базой данных SQLite (синхронный + асинхронный)
+Поддержка нескольких резюме и активного резюме.
+"""
+import sqlite3
+import json
+import aiosqlite
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict, Any, List
+from config.settings import DATA_DIR
+from core.logger import logger
+
+DB_PATH = DATA_DIR / "hh_bot.db"
+
+def init_db():
+    """Создаёт таблицы, если их нет, и обновляет схему"""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                telegram_id INTEGER PRIMARY KEY,
+                resume_text TEXT,
+                settings TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP,
+                resumes TEXT,
+                active_resume_index INTEGER DEFAULT 0
+            )
+        ''')
+        # Добавляем новые колонки для старых баз
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN resumes TEXT")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN active_resume_index INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                vacancy_id TEXT NOT NULL,
+                title TEXT,
+                url TEXT,
+                status TEXT,
+                letter TEXT,
+                error TEXT,
+                created_at TIMESTAMP,
+                FOREIGN KEY (telegram_id) REFERENCES users (telegram_id)
+            )
+        ''')
+        conn.commit()
+    logger.info(f"База данных инициализирована: {DB_PATH}")
+
+init_db()
+
+# ============================================
+# СИНХРОННЫЙ КЛАСС
+# ============================================
+class SyncDatabase:
+    @staticmethod
+    def get_user(telegram_id: int) -> Optional[Dict[str, Any]]:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+            row = cursor.fetchone()
+            if row:
+                user = dict(row)
+                if user.get('settings'):
+                    user['settings'] = json.loads(user['settings'])
+                if user.get('resumes'):
+                    user['resumes'] = json.loads(user['resumes'])
+                else:
+                    # Миграция старых данных: одиночное резюме -> список
+                    if user.get('resume_text'):
+                        user['resumes'] = [{"name": "Основное", "text": user['resume_text']}]
+                        user['active_resume_index'] = 0
+                    else:
+                        user['resumes'] = []
+                        user['active_resume_index'] = 0
+                return user
+            return None
+
+    @staticmethod
+    def save_user(telegram_id: int, resume_text: str = None, settings: Dict = None,
+                  resumes: List[Dict] = None, active_resume_index: int = None) -> None:
+        now = datetime.now().isoformat()
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT telegram_id FROM users WHERE telegram_id = ?", (telegram_id,))
+            exists = cursor.fetchone()
+            if exists:
+                updates = []
+                params = []
+                if resume_text is not None:
+                    updates.append("resume_text = ?")
+                    params.append(resume_text)
+                if settings is not None:
+                    updates.append("settings = ?")
+                    params.append(json.dumps(settings, ensure_ascii=False))
+                if resumes is not None:
+                    updates.append("resumes = ?")
+                    params.append(json.dumps(resumes, ensure_ascii=False))
+                if active_resume_index is not None:
+                    updates.append("active_resume_index = ?")
+                    params.append(active_resume_index)
+                if updates:
+                    updates.append("updated_at = ?")
+                    params.append(now)
+                    params.append(telegram_id)
+                    cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE telegram_id = ?", params)
+            else:
+                # Для нового пользователя
+                resumes_json = json.dumps(resumes, ensure_ascii=False) if resumes else "[]"
+                cursor.execute(
+                    """INSERT INTO users (telegram_id, resume_text, settings, created_at, updated_at, resumes, active_resume_index)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (telegram_id, resume_text or "", json.dumps(settings or {}, ensure_ascii=False), now, now,
+                     resumes_json, active_resume_index or 0)
+                )
+            conn.commit()
+
+    @staticmethod
+    def get_active_resume(telegram_id: int) -> Optional[str]:
+        user = SyncDatabase.get_user(telegram_id)
+        if not user:
+            return None
+        resumes = user.get('resumes', [])
+        idx = user.get('active_resume_index', 0)
+        if 0 <= idx < len(resumes):
+            return resumes[idx].get('text', '')
+        return None
+
+    @staticmethod
+    def add_application(telegram_id: int, vacancy_id: str, title: str, url: str, status: str, letter: str = "", error: str = None):
+        now = datetime.now().isoformat()
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO applications (telegram_id, vacancy_id, title, url, status, letter, error, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (telegram_id, vacancy_id, title, url, status, letter, error, now)
+            )
+            conn.commit()
+
+    @staticmethod
+    def get_applied_ids(telegram_id: int) -> set:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT vacancy_id FROM applications WHERE telegram_id = ? AND status = 'sent'", (telegram_id,))
+            return {row[0] for row in cursor.fetchall()}
+
+    @staticmethod
+    def get_stats(telegram_id: int) -> Dict[str, int]:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM applications WHERE telegram_id = ?", (telegram_id,))
+            total = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT status, COUNT(*) FROM applications WHERE telegram_id = ? GROUP BY status",
+                (telegram_id,)
+            )
+            stats = {row[0]: row[1] for row in cursor.fetchall()}
+            today = datetime.now().date().isoformat()
+            cursor.execute(
+                "SELECT COUNT(*) FROM applications WHERE telegram_id = ? AND status = 'sent' AND date(created_at) = ?",
+                (telegram_id, today)
+            )
+            sent_today = cursor.fetchone()[0]
+            return {
+                'total': total,
+                'sent': stats.get('sent', 0),
+                'revaz_skip': stats.get('revaz_skip', 0),
+                'error': stats.get('error', 0),
+                'ai_error': stats.get('ai_error', 0),
+                'sent_today': sent_today
+            }
+
+    @staticmethod
+    def get_recent_applications(telegram_id: int, limit: int = 10, status: str = None) -> List[Dict]:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            query = "SELECT * FROM applications WHERE telegram_id = ?"
+            params = [telegram_id]
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+# ============================================
+# АСИНХРОННЫЙ КЛАСС
+# ============================================
+class AsyncDatabase:
+    @staticmethod
+    async def get_user(telegram_id: int) -> Optional[Dict[str, Any]]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    user = dict(row)
+                    if user.get('settings'):
+                        user['settings'] = json.loads(user['settings'])
+                    if user.get('resumes'):
+                        user['resumes'] = json.loads(user['resumes'])
+                    else:
+                        if user.get('resume_text'):
+                            user['resumes'] = [{"name": "Основное", "text": user['resume_text']}]
+                            user['active_resume_index'] = 0
+                        else:
+                            user['resumes'] = []
+                            user['active_resume_index'] = 0
+                    return user
+                return None
+
+    @staticmethod
+    async def save_user(telegram_id: int, resume_text: str = None, settings: Dict = None,
+                        resumes: List[Dict] = None, active_resume_index: int = None) -> None:
+        now = datetime.now().isoformat()
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT telegram_id FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+                exists = await cursor.fetchone()
+            if exists:
+                updates = []
+                params = []
+                if resume_text is not None:
+                    updates.append("resume_text = ?")
+                    params.append(resume_text)
+                if settings is not None:
+                    updates.append("settings = ?")
+                    params.append(json.dumps(settings, ensure_ascii=False))
+                if resumes is not None:
+                    updates.append("resumes = ?")
+                    params.append(json.dumps(resumes, ensure_ascii=False))
+                if active_resume_index is not None:
+                    updates.append("active_resume_index = ?")
+                    params.append(active_resume_index)
+                if updates:
+                    updates.append("updated_at = ?")
+                    params.append(now)
+                    params.append(telegram_id)
+                    await db.execute(f"UPDATE users SET {', '.join(updates)} WHERE telegram_id = ?", params)
+            else:
+                resumes_json = json.dumps(resumes, ensure_ascii=False) if resumes else "[]"
+                await db.execute(
+                    """INSERT INTO users (telegram_id, resume_text, settings, created_at, updated_at, resumes, active_resume_index)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (telegram_id, resume_text or "", json.dumps(settings or {}, ensure_ascii=False), now, now,
+                     resumes_json, active_resume_index or 0)
+                )
+            await db.commit()
+
+    @staticmethod
+    async def get_active_resume(telegram_id: int) -> Optional[str]:
+        user = await AsyncDatabase.get_user(telegram_id)
+        if not user:
+            return None
+        resumes = user.get('resumes', [])
+        idx = user.get('active_resume_index', 0)
+        if 0 <= idx < len(resumes):
+            return resumes[idx].get('text', '')
+        return None
+
+    @staticmethod
+    async def add_application(telegram_id: int, vacancy_id: str, title: str, url: str, status: str, letter: str = "", error: str = None):
+        now = datetime.now().isoformat()
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                """INSERT INTO applications (telegram_id, vacancy_id, title, url, status, letter, error, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (telegram_id, vacancy_id, title, url, status, letter, error, now)
+            )
+            await db.commit()
+
+    @staticmethod
+    async def get_applied_ids(telegram_id: int) -> set:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT vacancy_id FROM applications WHERE telegram_id = ? AND status = 'sent'", (telegram_id,)) as cursor:
+                rows = await cursor.fetchall()
+                return {row[0] for row in rows}
+
+    @staticmethod
+    async def get_stats(telegram_id: int) -> Dict[str, int]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT COUNT(*) FROM applications WHERE telegram_id = ?", (telegram_id,)) as cursor:
+                total = (await cursor.fetchone())[0]
+            async with db.execute(
+                "SELECT status, COUNT(*) FROM applications WHERE telegram_id = ? GROUP BY status",
+                (telegram_id,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                stats = {row[0]: row[1] for row in rows}
+            today = datetime.now().date().isoformat()
+            async with db.execute(
+                "SELECT COUNT(*) FROM applications WHERE telegram_id = ? AND status = 'sent' AND date(created_at) = ?",
+                (telegram_id, today)
+            ) as cursor:
+                sent_today = (await cursor.fetchone())[0]
+            return {
+                'total': total,
+                'sent': stats.get('sent', 0),
+                'revaz_skip': stats.get('revaz_skip', 0),
+                'error': stats.get('error', 0),
+                'ai_error': stats.get('ai_error', 0),
+                'sent_today': sent_today
+            }
+
+    @staticmethod
+    async def get_recent_applications(telegram_id: int, limit: int = 10, status: str = None) -> List[Dict]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            query = "SELECT * FROM applications WHERE telegram_id = ?"
+            params = [telegram_id]
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+            async with db.execute(query, params) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+============================================================
+storage\history_repository.py
+============================================================
+"""
+Хранилище истории откликов (работа с БД)
+"""
+from storage.database import SyncDatabase
+
+def add_application(telegram_id: int, vacancy_id: str, title: str, url: str, status: str, letter: str = "", error: str = None):
+    SyncDatabase.add_application(telegram_id, vacancy_id, title, url, status, letter, error)
+
+def get_applied_ids(telegram_id: int) -> set:
+    return SyncDatabase.get_applied_ids(telegram_id)
+
+def get_stats(telegram_id: int):
+    return SyncDatabase.get_stats(telegram_id)
+============================================================
+storage\__init__.py
+============================================================
+
+============================================================
+test\login_once.py
+============================================================
+"""Одноразовый запуск для ручной авторизации в HH"""
+from core.browser import launch_browser
+from config.settings import SEARCH_MODE  # не важно, просто импорт
+
+print("🟢 Открываю браузер. Войди в hh.ru вручную, затем закрой окно.")
+with launch_browser() as page:
+    page.goto("https://hh.ru")
+    input("⏳ После входа в аккаунт нажми Enter здесь, чтобы закрыть браузер...")
+print("✅ Профиль сохранён. Теперь бот будет использовать эту сессию.")
+============================================================
+test\test_browser.py
+============================================================
+from core.browser import launch_browser
+
+with launch_browser() as page:
+    page.goto("https://hh.ru")
+    print("✅ Браузер открыл HH:", page.title())
+============================================================
+test\test_full.py
+============================================================
+"""Полный тест всех систем HH Bot Pro с записью результатов"""
+import sys
+from pathlib import Path
+from datetime import datetime
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+from core.logger import logger, log_startup, log_shutdown
+from core.ai_client import get_ai_client
+from core.browser import launch_browser
+from config.settings import RESUME_FILE, BASE_DIR
+
+REPORT_FILE = BASE_DIR / "test_report.txt"
+
+def write_report(content: str):
+    """Дописывает строку в отчёт"""
+    with open(REPORT_FILE, 'a', encoding='utf-8') as f:
+        f.write(content + '\n')
+
+# Очищаем старый отчёт
+with open(REPORT_FILE, 'w', encoding='utf-8') as f:
+    f.write(f"HH BOT PRO - ТЕСТОВЫЙ ОТЧЁТ\n{'='*50}\n")
+    f.write(f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+log_startup()
+write_report(f"Тест запущен: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+# ===== 1. ТЕСТ AI =====
+print("\n🧠 ТЕСТ AI...")
+write_report("\n--- ТЕСТ AI ---")
+try:
+    ai = get_ai_client()
+    if ai.is_available():
+        response = ai.generate("Скажи 'Привет, мир!'", max_tokens=30)
+        logger.info(f"✅ AI отвечает: {response}")
+        write_report(f"✅ AI отвечает: {response}")
+    else:
+        msg = "❌ AI не настроен"
+        logger.error(msg)
+        write_report(msg)
+        sys.exit(1)
+except Exception as e:
+    msg = f"❌ AI ошибка: {e}"
+    logger.error(msg)
+    write_report(msg)
+    sys.exit(1)
+
+# ===== 2. ТЕСТ БРАУЗЕРА =====
+print("\n🌐 ТЕСТ БРАУЗЕРА...")
+write_report("\n--- ТЕСТ БРАУЗЕРА ---")
+try:
+    with launch_browser() as page:
+        page.goto("https://hh.ru", timeout=30000)
+        title = page.title()
+        logger.info(f"✅ HH открыт: {title}")
+        write_report(f"✅ HH открыт: {title}")
+        
+        if page.query_selector('a[data-qa="mainmenu_applicantResumes"]'):
+            logger.info("✅ Пользователь авторизован на HH")
+            write_report("✅ Пользователь авторизован на HH")
+        else:
+            logger.warning("⚠️ Не удалось подтвердить авторизацию")
+            write_report("⚠️ Не удалось подтвердить авторизацию")
+except Exception as e:
+    msg = f"❌ Ошибка браузера: {e}"
+    logger.error(msg)
+    write_report(msg)
+    sys.exit(1)
+
+# ===== 3. ТЕСТ ГЕНЕРАЦИИ ПИСЬМА =====
+print("\n📝 ТЕСТ ГЕНЕРАЦИИ ПИСЬМА...")
+write_report("\n--- ТЕСТ ГЕНЕРАЦИИ ПИСЬМА ---")
+try:
+    if RESUME_FILE.exists():
+        with open(RESUME_FILE, 'r', encoding='utf-8') as f:
+            resume = f.read()[:500]
+    else:
+        resume = "Опыт управления точками продаж, ведения клиентов, Excel, Python."
+        logger.warning("⚠️ Файл резюме не найден, используется тестовое")
+        write_report("⚠️ Использовано тестовое резюме")
+    
+    vac_text = "Требуется менеджер проектов. Знание Excel, английский язык."
+    title = "Менеджер проектов"
+    
+    prompt = f"""
+Ты — ассистент. Напиши короткое сопроводительное письмо.
+Резюме: {resume}
+Вакансия: {title}
+Требования: {vac_text}
+Без воды, 5-7 предложений.
+"""
+    letter = ai.generate(prompt, max_tokens=200)
+    logger.info(f"✅ Письмо сгенерировано:\n{letter}")
+    write_report(f"✅ Письмо сгенерировано:\n{letter}\n")
+except Exception as e:
+    msg = f"❌ Ошибка генерации письма: {e}"
+    logger.error(msg)
+    write_report(msg)
+    sys.exit(1)
+
+print("\n" + "="*50)
+print("🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО!")
+print("="*50)
+write_report("\n🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО!")
+write_report(f"Завершено: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+log_shutdown()
+============================================================
+test\test_setup.py
+============================================================
+"""Проверка работоспособности модулей"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from config.settings import BASE_DIR, LOGS_DIR
+from core.logger import logger, log_startup
+from core.ai_client import get_ai_client
+from core.browser import launch_browser
+
+log_startup()
+
+# Проверяем AI
+try:
+    ai = get_ai_client()
+    if ai.is_available():
+        response = ai.generate("Скажи 'Привет, мир!' одним словом", max_tokens=20)
+        logger.info(f"✅ AI тест пройден: {response}")
+    else:
+        logger.error("❌ AI не настроен")
+except Exception as e:
+    logger.error(f"❌ AI ошибка: {e}")
+
+# Проверяем браузер
+try:
+    with launch_browser() as page:
+        page.goto("https://hh.ru")
+        logger.info(f"✅ Браузер открыл HH: {page.title()}")
+except Exception as e:
+    logger.error(f"❌ Ошибка браузера: {e}")
+
+logger.info("Тест завершён")
+```
+
+## dump_code_md.py
+
+```python
+import os
+from pathlib import Path
+
+output_file = "code_dump.md"
+exclude_dirs = {".venv", "__pycache__", ".git", "data", "logs", "chrome_profile", "test"}
+exclude_ext = {".pyc", ".db", ".log", ".exe", ".png", ".jpg"}
+
+with open(output_file, "w", encoding="utf-8") as out:
+    for root, dirs, files in os.walk("."):
+        dirs[:] = sorted([d for d in dirs if d not in exclude_dirs])
+        for file in sorted(files):
+            path = Path(root) / file
+            if path.suffix in exclude_ext:
+                continue
+            if file == output_file or file == "dump_code.py":
+                continue
+            # Берём только .py, .txt, .md, .env.example
+            if path.suffix not in {".py", ".txt", ".md"} and file != ".env.example":
+                continue
+            rel_path = path.as_posix().lstrip("./")
+            out.write(f"\n## {rel_path}\n\n```python\n")
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    out.write(f.read())
+            except Exception as e:
+                out.write(f"# Ошибка чтения: {e}\n")
+            out.write("\n```\n")
+
+print(f"✅ Готово! Файл: {output_file}")
+```
+
+## fix_db.py
+
+```python
+"""
+Скрипт починки БД — конвертирует старые резюме в новый формат
+"""
+import sqlite3
+import json
+from pathlib import Path
+
+DB_PATH = Path("data/hh_bot.db")
+
+with sqlite3.connect(DB_PATH) as conn:
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM users")
+    users = cursor.fetchall()
+    
+    for user in users:
+        user = dict(user)
+        telegram_id = user['telegram_id']
+        resume_text = user.get('resume_text', '')
+        resumes_raw = user.get('resumes')
+        
+        # Если resumes пустой или null — конвертируем
+        resumes = None
+        if resumes_raw:
+            try:
+                resumes = json.loads(resumes_raw)
+            except:
+                resumes = None
+        
+        if not resumes and resume_text:
+            # Создаём правильный формат
+            resumes = [{"name": "Основное", "text": resume_text}]
+            cursor.execute(
+                "UPDATE users SET resumes = ?, active_resume_index = 0 WHERE telegram_id = ?",
+                (json.dumps(resumes, ensure_ascii=False), telegram_id)
+            )
+            print(f"✅ Починил пользователя {telegram_id}")
+        else:
+            print(f"ℹ️ Пользователь {telegram_id} уже в порядке")
+    
+    conn.commit()
+    print("✅ Готово!")
+```
+
+## main.py
+
+```python
+"""
+HH Bot Pro — многопользовательский с динамическим поиском и ручным режимом
+"""
+import time
+import threading
+from dotenv import load_dotenv
+load_dotenv()
+
+from core.logger import logger, log_startup, log_shutdown
+from core.session_manager import session_manager
+from config.settings import TELEGRAM_BOT_TOKEN
+from bot.bot import run_telegram_bot
+import bot.utils.helpers as tb_helpers
+
+
+def start_session(telegram_id: int, job_title: str, limit: int, custom_url: str = None) -> bool:
+    """Функция для вызова из Telegram бота"""
+    return session_manager.start_session(telegram_id, job_title, limit, custom_url)
+
+
+def stop_session(telegram_id: int):
+    """Функция для вызова из Telegram бота"""
+    session_manager.stop_session(telegram_id)
+
+
+def main():
+    log_startup()
+    # Передаём функции в хелперы, чтобы бот мог их вызывать
+    tb_helpers.set_session_handlers(start_session, stop_session)
+
+    if TELEGRAM_BOT_TOKEN:
+        telegram_thread = threading.Thread(target=run_telegram_bot, daemon=True)
+        telegram_thread.start()
+        logger.info("Telegram бот запущен в фоне")
+
+    if not tb_helpers.loop_ready.wait(timeout=10):
+        logger.error("Таймаут ожидания готовности Telegram loop")
+        return
+
+    if not tb_helpers.telegram_loop:
+        logger.error("telegram_loop всё ещё None после loop_ready!")
+        return
+
+    logger.info(f"Telegram loop готов: {id(tb_helpers.telegram_loop)}")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        logger.info("Завершение работы")
+    finally:
+        log_shutdown(0)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## requirements.txt
+
+```python
+playwright==1.48.0
+python-dotenv==1.0.1
+openai==1.54.0
+gigachat==0.1.9
+python-telegram-bot==20.7
+playwright==1.48.0
+python-dotenv==1.0.1
+openai==1.54.0
+gigachat==0.1.9
+python-telegram-bot==20.7
+pysocks==1.7.1
+aiosqlite==0.20.0
+```
+
+## tunnel.py
+
+```python
+import asyncio
+from mtprotoproxy import MTProtoProxy
+
+async def main():
+    proxy = MTProtoProxy(
+        host="130.49.5.41",
+        port=443,
+        secret=bytes.fromhex("ee3196a49fcbc0b8767ca723c875c815d779612e7275"),
+        local_host="127.0.0.1",
+        local_port=1080
+    )
+    print("🚀 Туннель запущен на 127.0.0.1:1080")
+    await proxy.start()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## bot/__init__.py
+
+```python
+
+```
+
+## bot/bot.py
+
+```python
+import asyncio
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from config.settings import TELEGRAM_BOT_TOKEN
+from core.logger import logger
+import bot.utils.helpers as tb_helpers
+from bot.handlers.commands import start, cancel, help_command
+from bot.handlers.callbacks import button_handler
+from bot.handlers.messages import handle_all_text
+
+
+def run_telegram_bot():
+    if not TELEGRAM_BOT_TOKEN:
+        logger.warning("Telegram токен не настроен.")
+        return
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    tb_helpers.telegram_loop = loop
+
+    try:
+        application = (
+            Application.builder()
+            .token(TELEGRAM_BOT_TOKEN)
+            .proxy_url(tb_helpers.PROXY_URL)
+            .get_updates_proxy_url(tb_helpers.PROXY_URL)
+            .build()
+        )
+        tb_helpers.telegram_bot = application.bot
+        tb_helpers.loop_ready.set()
+    except Exception as e:
+        logger.error(f"Не удалось создать Application: {e}")
+        return
+
+    # Установка команд для нативного меню
+    loop.run_until_complete(
+        application.bot.set_my_commands([
+            ("start", "Главное меню"),
+            ("help", "Помощь и инструкция"),
+            ("cancel", "Отменить действие"),
+        ])
+    )
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("cancel", cancel))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_all_text))
+
+    logger.info(f"✅ Telegram бот запущен через прокси {tb_helpers.PROXY_URL}")
+    loop.run_until_complete(application.run_polling(drop_pending_updates=True))
+```
+
+## bot/handlers/__init__.py
+
+```python
+
+```
+
+## bot/handlers/callbacks.py
+
+```python
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+import bot.utils.helpers as tb_helpers
+from bot.keyboards.main import (
+    get_resume_menu_keyboard, get_job_suggestions_keyboard,
+    get_confirm_job_keyboard, get_main_keyboard, get_jobs_menu_keyboard
+)
+import storage.database as db
+from core.logger import logger
+from core.ai_client import get_ai_client_async
+from core.prompts import JOB_SUGGESTIONS_PROMPT
+from bot.handlers.messages import analyze_resume_handler
+from core.async_executor import run_in_thread
+
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    user_id = update.effective_user.id
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+
+    session_active = tb_helpers.get_user_session_active(user_id)
+    manual_mode = tb_helpers.get_user_manual_mode(user_id)
+
+    if data == "toggle_session":
+        if not session_active:
+            job_title = settings.get('job_title')
+            limit = settings.get('limit')
+            if job_title:
+                keyboard = get_confirm_job_keyboard(job_title)
+                await query.edit_message_text(
+                    f"Желаемая должность: *{job_title}*\n\nХотите искать по ней или ввести новую?",
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                context.user_data['state'] = None
+                return
+            else:
+                await query.edit_message_text("📝 Введите желаемую должность:")
+                context.user_data['state'] = 'awaiting_job'
+                return
+        else:
+            if tb_helpers.stop_session_func:
+                tb_helpers.stop_session_func(user_id)
+                session_active = False
+                mode_text = "🟡 Ручной" if manual_mode else "🟢 Авто"
+                start_stop_text = "▶️ Запустить отклики"
+                keyboard = get_main_keyboard(start_stop_text, mode_text)
+                text = (
+                    "🤖 *HH Bot Pro*\n\n"
+                    f"Статус: 🔴 Остановлен\n"
+                    f"Режим: {'🟡 Ручной' if manual_mode else '🟢 Авто'}\n\n"
+                    "Выбери действие:"
+                )
+                await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
+                context.user_data['state'] = None
+
+    elif data == "toggle_mode":
+        manual_mode = not manual_mode
+        tb_helpers.user_manual_mode[user_id] = manual_mode
+        if user:
+            settings['manual_mode'] = manual_mode
+            await db.AsyncDatabase.save_user(user_id, settings=settings)
+        session_active = tb_helpers.get_user_session_active(user_id)
+        mode_text = "🟡 Ручной" if manual_mode else "🟢 Авто"
+        start_stop_text = "⏸️ Остановить" if session_active else "▶️ Запустить отклики"
+        keyboard = get_main_keyboard(start_stop_text, mode_text)
+        text = (
+            "🤖 *HH Bot Pro*\n\n"
+            f"Статус: {'🟢 Запущен' if session_active else '🔴 Остановлен'}\n"
+            f"Режим: {'🟡 Ручной' if manual_mode else '🟢 Авто'}\n\n"
+            "Выбери действие:"
+        )
+        await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
+
+    elif data == "stats":
+        stats = await db.AsyncDatabase.get_stats(user_id)
+        text = (
+            f"📊 *СТАТИСТИКА*\n\n"
+            f"📬 Всего откликов: {stats['total']}\n"
+            f"✅ Отправлено: {stats['sent']}\n"
+            f"🛡️ Отклонено Ревазом: {stats['revaz_skip']}\n"
+            f"❌ Ошибок: {stats['error']}\n"
+            f"🤖 AI-ошибок: {stats['ai_error']}\n\n"
+            f"📅 *Сегодня отправлено:* {stats['sent_today']}"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Успешные отклики", callback_data="successful_applications")],
+            [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")]
+        ])
+        await query.edit_message_text(text=text, reply_markup=keyboard, parse_mode="Markdown")
+
+    elif data == "successful_applications":
+        apps = await db.AsyncDatabase.get_recent_applications(user_id, limit=10, status='sent')
+        if not apps:
+            await query.edit_message_text("Пока нет успешных откликов.")
+            return
+        text = "*Последние отправленные отклики:*\n\n"
+        keyboard = []
+        for app in apps:
+            short_title = app['title'][:40] + "..." if len(app['title']) > 40 else app['title']
+            keyboard.append([InlineKeyboardButton(short_title, url=app['url'])])
+        keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="stats")])
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+
+    elif data == "back_to_main":
+        await tb_helpers.show_main_menu(update, context)
+        context.user_data['state'] = None
+
+    elif data == "already_authorized":
+        await query.edit_message_text(
+            "✅ Отлично!\n\n"
+            "📝 *Шаг 2: Загрузи резюме*\n\n"
+            "Отправь мне текст своего резюме (не менее 500 символов).\n"
+            "Можно скопировать прямо с hh.ru.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_resume'
+
+    elif data == "start_hh_login":
+        from core.session_manager import session_manager
+        success = session_manager.start_auth_session(user_id)
+        if success:
+            await query.edit_message_text(
+                "🌐 Открываю браузер...\n\n"
+                "Сейчас появится окно Chrome на компьютере!\n"
+                "Жди следующего сообщения от бота 👇"
+            )
+            context.user_data['state'] = 'awaiting_phone'
+        else:
+            await query.edit_message_text("⚠️ Авторизация уже запущена.")
+
+    elif data == "resume_menu":
+        await query.edit_message_text(
+            "📄 *Управление резюме*\n\nВыбери действие:",
+            parse_mode="Markdown",
+            reply_markup=get_resume_menu_keyboard()
+        )
+
+    elif data == "view_resume":
+        resume_text = await db.AsyncDatabase.get_active_resume(user_id)
+        if not resume_text:
+            await query.answer("Активное резюме не найдено", show_alert=True)
+            return
+        await query.edit_message_text(
+            f"📄 *Ваше активное резюме:*\n\n{resume_text[:3500]}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data="resume_menu")]])
+        )
+
+    elif data == "upload_resume":
+        await query.edit_message_text("📤 Отправь мне текст твоего резюме (более 500 символов).")
+        context.user_data['state'] = 'awaiting_resume'
+
+    elif data == "switch_resume":
+        resumes = user.get('resumes', []) if user else []
+        if not resumes:
+            await query.answer("У вас нет сохранённых резюме", show_alert=True)
+            return
+        keyboard = []
+        for i, r in enumerate(resumes):
+            name = r.get('name', f'Резюме {i+1}')
+            active_mark = " ✅" if i == user.get('active_resume_index', 0) else ""
+            keyboard.append([InlineKeyboardButton(f"{name}{active_mark}", callback_data=f"set_active_resume_{i}")])
+        keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="resume_menu")])
+        await query.edit_message_text(
+            "🔄 *Выберите активное резюме:*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif data.startswith("set_active_resume_"):
+        idx = int(data.replace("set_active_resume_", ""))
+        if user and user.get('resumes'):
+            await db.AsyncDatabase.save_user(user_id, active_resume_index=idx)
+            await query.edit_message_text("✅ Активное резюме изменено.")
+            await tb_helpers.show_main_menu(update, context)
+        else:
+            await query.answer("Ошибка", show_alert=True)
+
+    elif data == "analyze_resume":
+        resume_text = await db.AsyncDatabase.get_active_resume(user_id)
+        if not resume_text:
+            await query.edit_message_text("❌ Активное резюме не найдено.")
+            return
+        await query.edit_message_text("🔍 Алина анализирует...")
+        await analyze_resume_handler(update, context, user_id, resume_text)
+
+    elif data == "view_improved":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.answer("Нет улучшенной версии", show_alert=True)
+            return
+
+        # Отправляем улучшенное резюме текстом — разбиваем если длинное
+        max_len = 3800
+        if len(improved) > max_len:
+            await query.message.reply_text(
+                f"📄 *Улучшенная версия резюме (часть 1):*\n\n{improved[:max_len]}",
+                parse_mode="Markdown"
+            )
+            await query.message.reply_text(
+                f"📄 *Улучшенная версия резюме (часть 2):*\n\n{improved[max_len:max_len*2]}",
+                parse_mode="Markdown"
+            )
+        else:
+            await query.message.reply_text(
+                f"📄 *Улучшенная версия резюме:*\n\n{improved}",
+                parse_mode="Markdown"
+            )
+
+        # Предлагаем действия
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Заменить текущее резюме", callback_data="apply_improved_resume")],
+            [InlineKeyboardButton("➕ Добавить как новое резюме", callback_data="add_improved_resume")],
+            [InlineKeyboardButton("❌ Оставить текущее", callback_data="skip_analysis")],
+        ])
+        await query.message.reply_text(
+            "Что сделать с улучшенной версией?",
+            reply_markup=keyboard
+        )
+        await query.answer()
+
+    elif data == "skip_analysis":
+        resume_text = context.user_data.get('resume_text')
+        if not resume_text:
+            user_data = await db.AsyncDatabase.get_user(user_id)
+            if user_data:
+                resume_text = user_data.get('resume_text')
+        if resume_text:
+            await db.AsyncDatabase.save_user(
+                user_id,
+                resume_text=resume_text,
+                resumes=[{"name": "Основное", "text": resume_text}],
+                active_resume_index=0
+            )
+        await suggest_jobs(update, context, user_id)
+        context.user_data['state'] = None
+
+    elif data == "back_to_analysis":
+        analysis = context.user_data.get('analysis')
+        resume_text = context.user_data.get('resume_text') or await db.AsyncDatabase.get_active_resume(user_id)
+        if analysis and resume_text:
+            await analyze_resume_handler(update, context, user_id, resume_text)
+        else:
+            await query.edit_message_text("Данные анализа не найдены.")
+
+    elif data == "apply_improved_onboard":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.answer("Нет улучшенной версии", show_alert=True)
+            return
+        await db.AsyncDatabase.save_user(
+            user_id,
+            resume_text=improved,
+            resumes=[{"name": "Улучшенное", "text": improved}],
+            active_resume_index=0
+        )
+        context.user_data['improved_resume'] = improved
+        await query.edit_message_text("✅ Улучшенное резюме сохранено как активное!")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Подобрать должность", callback_data="update_job")],
+            [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
+        ])
+        await query.message.reply_text("Хочешь подобрать должность под новое резюме?", reply_markup=keyboard)
+
+    elif data == "apply_improved_resume":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.edit_message_text("❌ Нет улучшенного резюме.")
+            return
+        # Получаем текущие резюме и заменяем активное
+        current_user = await db.AsyncDatabase.get_user(user_id)
+        resumes = current_user.get('resumes', []) if current_user else []
+        active_idx = current_user.get('active_resume_index', 0) if current_user else 0
+        if resumes and active_idx < len(resumes):
+            resumes[active_idx] = {"name": resumes[active_idx].get('name', 'Основное') + " (улучшено)", "text": improved}
+        else:
+            resumes = [{"name": "Улучшенное", "text": improved}]
+        await db.AsyncDatabase.save_user(user_id, resume_text=improved, resumes=resumes, active_resume_index=active_idx)
+        context.user_data['improved_resume'] = improved
+        await query.edit_message_text("✅ Текущее резюме заменено улучшенной версией!")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Обновить должность", callback_data="update_job")],
+            [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
+        ])
+        await query.message.reply_text("Хочешь заново подобрать должность?", reply_markup=keyboard)
+
+    elif data == "add_improved_resume":
+        analysis = context.user_data.get('analysis', {})
+        improved = analysis.get('improved_resume')
+        if not improved:
+            await query.edit_message_text("❌ Нет улучшенного резюме.")
+            return
+        # Добавляем как новое резюме не заменяя старое
+        current_user = await db.AsyncDatabase.get_user(user_id)
+        resumes = current_user.get('resumes', []) if current_user else []
+        new_idx = len(resumes)
+        resumes.append({"name": f"Улучшенное #{new_idx + 1}", "text": improved})
+        await db.AsyncDatabase.save_user(user_id, resumes=resumes, active_resume_index=new_idx)
+        await query.edit_message_text(f"✅ Улучшенное резюме добавлено как 'Улучшенное #{new_idx + 1}' и установлено активным!")
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Обновить должность", callback_data="update_job")],
+            [InlineKeyboardButton("◀️ В меню", callback_data="back_to_main")],
+        ])
+        await query.message.reply_text("Хочешь подобрать должность?", reply_markup=keyboard)
+
+    elif data == "update_job":
+        await suggest_jobs(update, context, user_id)
+
+    elif data == "jobs_menu":
+        await query.edit_message_text(
+            "📌 *Управление должностями*\n\nВыбери действие:",
+            parse_mode="Markdown",
+            reply_markup=get_jobs_menu_keyboard()
+        )
+
+    elif data == "job_manual":
+        await query.edit_message_text("📝 Введите желаемую должность:")
+        context.user_data['state'] = 'awaiting_job'
+
+    elif data == "job_suggest":
+        await suggest_jobs(update, context, user_id)
+
+    elif data == "job_show":
+        job_title = settings.get('job_title', 'Не указана')
+        await query.edit_message_text(
+            f"📌 *Текущая должность для поиска:*\n\n{job_title}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Назад", callback_data="jobs_menu")]
+            ])
+        )
+
+    elif data == "job_url":
+        await query.edit_message_text(
+            "🔗 *Отправь мне готовую ссылку на поиск hh.ru*\n\n"
+            "Пример: `https://hh.ru/search/vacancy?resume=...&experience=noExperience`\n\n"
+            "Я сохраню эту ссылку и буду использовать её для поиска вместо должности.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_job_url'
+
+    elif data.startswith("use_job_idx_"):
+        idx = int(data.replace("use_job_idx_", ""))
+        jobs = context.user_data.get('suggested_jobs', [])
+        job = jobs[idx] if idx < len(jobs) else ""
+        settings['job_title'] = job
+        settings.pop('custom_search_url', None)
+        await db.AsyncDatabase.save_user(user_id, settings=settings)
+        await query.edit_message_text(f"✅ Будем искать: {job}")
+        limit = settings.get('limit')
+        if not limit:
+            await query.edit_message_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+            return
+        from bot.handlers.messages import show_summary_and_confirm
+        await show_summary_and_confirm(update, user_id, job, limit)
+
+    elif data == "new_job":
+        await query.edit_message_text("📝 Введите желаемую должность:")
+        context.user_data['state'] = 'awaiting_job'
+
+    elif data == "start_session_confirm":
+        job_title = settings.get('job_title')
+        limit = settings.get('limit')
+        custom_url = settings.get('custom_search_url')
+
+        if job_title:
+            custom_url = None
+
+        if not job_title and not custom_url:
+            await query.edit_message_text("❌ Не задана ни должность, ни ссылка для поиска.")
+            return
+        if not limit:
+            await query.edit_message_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+            return
+
+        # Предлагаем выбрать резюме если их больше одного
+        resumes = user.get('resumes', []) if user else []
+        if len(resumes) > 1:
+            keyboard = []
+            for i, r in enumerate(resumes):
+                name = r.get('name', f'Резюме {i+1}')
+                active_mark = " ✅" if i == user.get('active_resume_index', 0) else ""
+                keyboard.append([InlineKeyboardButton(f"{name}{active_mark}", callback_data=f"launch_with_resume_{i}")])
+            await query.edit_message_text(
+                "📄 *Выберите резюме для этой сессии:*",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            context.user_data['pending_job_title'] = job_title
+            context.user_data['pending_limit'] = limit
+            context.user_data['pending_custom_url'] = custom_url
+            return
+
+        # Одно резюме — запускаем сразу
+        if tb_helpers.start_session_func:
+            success = tb_helpers.start_session_func(user_id, job_title or "", limit, custom_url)
+            if success:
+                tb_helpers.user_sessions_active[user_id] = True
+                await tb_helpers.show_main_menu(update, context)
+            else:
+                await query.edit_message_text("⚠️ Сессия уже запущена или произошла ошибка")
+        else:
+            await query.edit_message_text("❌ Функция запуска не настроена")
+        context.user_data['state'] = None
+
+    elif data.startswith("launch_with_resume_"):
+        idx = int(data.replace("launch_with_resume_", ""))
+        # Устанавливаем выбранное резюме активным
+        await db.AsyncDatabase.save_user(user_id, active_resume_index=idx)
+        job_title = context.user_data.pop('pending_job_title', settings.get('job_title', ''))
+        limit = context.user_data.pop('pending_limit', settings.get('limit', 10))
+        custom_url = context.user_data.pop('pending_custom_url', None)
+        if tb_helpers.start_session_func:
+            success = tb_helpers.start_session_func(user_id, job_title or "", limit, custom_url)
+            if success:
+                tb_helpers.user_sessions_active[user_id] = True
+                resumes = user.get('resumes', [])
+                resume_name = resumes[idx].get('name', f'Резюме {idx+1}') if idx < len(resumes) else 'Резюме'
+                await query.edit_message_text(f"🚀 Запускаю с резюме: *{resume_name}*", parse_mode="Markdown")
+                await tb_helpers.show_main_menu(update, context)
+            else:
+                await query.edit_message_text("⚠️ Сессия уже запущена или произошла ошибка")
+        context.user_data['state'] = None
+
+    elif data == "edit_settings":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💼 Изменить должность", callback_data="edit_job")],
+            [InlineKeyboardButton("🔢 Изменить лимит", callback_data="edit_limit")],
+            [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+        ])
+        await query.edit_message_text("Что хотите изменить?", reply_markup=keyboard)
+
+    elif data == "edit_job":
+        await query.edit_message_text("📝 Введите новую должность:")
+        context.user_data['state'] = 'awaiting_job'
+        context.user_data['editing_job'] = True
+
+    elif data == "edit_limit":
+        await query.edit_message_text("📊 Введите новое количество откликов (1-200):")
+        context.user_data['state'] = 'awaiting_limit'
+        context.user_data['editing_limit'] = True
+
+    elif data == "start_by_url":
+        await query.edit_message_text(
+            "🔗 *Отправь мне готовую ссылку на поиск hh.ru*\n\n"
+            "Пример: `https://hh.ru/search/vacancy?resume=...&experience=noExperience`\n\n"
+            "Я запущу отклики по этой ссылке, используя твоё активное резюме.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_search_url'
+
+    elif data.startswith("apply_"):
+        vac_id = data.replace("apply_", "")
+        tb_helpers.manual_decisions[vac_id] = "apply"
+        event = tb_helpers.get_user_decision_event(user_id)
+        event.set()
+        await query.edit_message_text("✅ Отклик на вакансию отправлен!")
+
+    elif data.startswith("skip_"):
+        vac_id = data.replace("skip_", "")
+        tb_helpers.manual_decisions[vac_id] = "skip"
+        event = tb_helpers.get_user_decision_event(user_id)
+        event.set()
+        await query.edit_message_text("⏭️ Вакансия пропущена.")
+
+    elif data.startswith("regen_"):
+        vac_id = data.replace("regen_", "")
+        tb_helpers.manual_decisions[vac_id] = "regen"
+        event = tb_helpers.get_user_decision_event(user_id)
+        event.set()
+        await query.edit_message_text("🔄 Письмо перегенерировано")
+
+    elif data.startswith("full_"):
+        vac_id = data.replace("full_", "")
+        ctx = tb_helpers.pending_vacancies.get(vac_id)
+        if ctx:
+            await query.message.reply_text(f"📄 *Полный текст письма:*\n\n{ctx['letter']}", parse_mode="Markdown")
+        else:
+            await query.answer("Вакансия не найдена", show_alert=True)
+
+    elif data.startswith("edit_"):
+        vac_id = data.replace("edit_", "")
+        ctx = tb_helpers.pending_vacancies.get(vac_id)
+        if not ctx:
+            await query.answer("Вакансия не найдена", show_alert=True)
+            return
+        await query.edit_message_text("✏️ Отправь что хочешь изменить в письме:")
+        context.user_data['state'] = 'awaiting_custom_letter'
+        context.user_data['editing_vac_id'] = vac_id
+
+
+async def suggest_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
+    user = await db.AsyncDatabase.get_user(user_id)
+    resume_text = user['resume_text'] if user else context.user_data.get('resume_text', '')
+    active_resume = await db.AsyncDatabase.get_active_resume(user_id)
+    if active_resume:
+        resume_text = active_resume
+    ai = await get_ai_client_async()
+    prompt = JOB_SUGGESTIONS_PROMPT.format(resume=resume_text[:2000])
+
+    try:
+        import json
+        jobs_str = await run_in_thread(ai.generate, prompt, max_tokens=300)
+        jobs_str = jobs_str.strip()
+        if jobs_str.startswith('```json'):
+            jobs_str = jobs_str[7:]
+        if jobs_str.startswith('```'):
+            jobs_str = jobs_str[3:]
+        if jobs_str.endswith('```'):
+            jobs_str = jobs_str[:-3]
+        jobs = json.loads(jobs_str)
+        if not isinstance(jobs, list) or len(jobs) == 0:
+            raise ValueError("Пустой список")
+    except Exception as e:
+        logger.warning(f"Не удалось распарсить JSON с должностями: {e}")
+        jobs = ["Менеджер проектов", "Менеджер по продажам", "Аналитик", "Продакт-менеджер", "Ассистент руководителя"]
+
+    context.user_data['suggested_jobs'] = jobs
+    keyboard = get_job_suggestions_keyboard(jobs)
+    text = "📋 Я подобрал для тебя подходящие должности. Выбери или введи свою:"
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=keyboard)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard)
+```
+
+## bot/handlers/commands.py
+
+```python
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import ContextTypes
+from bot.utils.helpers import show_main_menu
+import storage.database as db
+from core.logger import logger
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = await db.AsyncDatabase.get_user(user_id)
+
+    # Постоянное меню снизу — появляется всегда
+    reply_keyboard = ReplyKeyboardMarkup([
+        [KeyboardButton("▶️ Запустить отклики"), KeyboardButton("🔄 Режим")],
+        [KeyboardButton("📊 Статистика"), KeyboardButton("📄 Резюме")],
+        [KeyboardButton("📌 Должности"), KeyboardButton("🔗 По ссылке")],
+        [KeyboardButton("🔐 Авторизация hh.ru")],
+    ], resize_keyboard=True)
+
+    if user and user.get('resume_text'):
+        # Знакомый пользователь
+        if user.get('settings'):
+            import bot.utils.helpers as tb_helpers
+            tb_helpers.user_manual_mode[user_id] = user['settings'].get('manual_mode', False)
+
+        await update.message.reply_text(
+            "⌨️ Панель управления",
+            reply_markup=reply_keyboard
+        )
+        await show_main_menu(update, context)
+        context.user_data['state'] = None
+    else:
+        # Новый пользователь — онбординг
+        await update.message.reply_text(
+            "⌨️ Панель управления",
+            reply_markup=reply_keyboard
+        )
+
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔐 Войти в hh.ru", callback_data="start_hh_login")],
+            [InlineKeyboardButton("✅ Я уже авторизован", callback_data="already_authorized")],
+        ])
+        await update.message.reply_text(
+            "👋 Привет! Я помогу тебе автоматизировать отклики на hh.ru.\n\n"
+            "🔐 *Шаг 1: Авторизация*\n"
+            "Для работы бота нужно войти в hh.ru через браузер на этом компьютере.\n\n"
+            "Нажми кнопку ниже чтобы войти, затем нажми «Я уже авторизован».",
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+        context.user_data['state'] = 'awaiting_auth'
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Настройка отменена.")
+    context.user_data['state'] = None
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "🤖 *HH Bot Pro — Помощь*\n\n"
+        "Этот бот автоматизирует отклики на hh.ru.\n\n"
+        "*Основные действия:*\n"
+        "• Загрузите резюме через меню «Резюме».\n"
+        "• Укажите желаемую должность и количество откликов.\n"
+        "• Выберите режим: авто или ручной.\n"
+        "• Нажмите «Запустить отклики» — бот начнёт работу.\n\n"
+        "*Команды:*\n"
+        "/start — главное меню\n"
+        "/help — эта справка\n"
+        "/cancel — отменить текущую настройку\n"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
+```
+
+## bot/handlers/messages.py
+
+```python
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+import bot.utils.helpers as tb_helpers
+import storage.database as db
+from core.logger import logger
+from bot.keyboards.main import get_analysis_keyboard
+from core.async_executor import run_in_thread
+
+MENU_BUTTONS = {
+    "📊 Статистика": "stats",
+    "📄 Резюме": "resume_menu",
+    "📌 Должности": "jobs_menu",
+    "🔗 По ссылке": "start_by_url",
+    "🔐 Авторизация hh.ru": "start_hh_login",
+    "🔄 Режим": "toggle_mode",
+}
+
+
+async def handle_all_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    state = context.user_data.get('state')
+    user_id = update.effective_user.id
+    text = update.message.text.strip()
+
+    logger.info(f"📥 Получено сообщение от {user_id}, state={state}, текст: {text}")
+
+    if state not in ('awaiting_resume', 'awaiting_job', 'awaiting_limit',
+                     'awaiting_custom_letter', 'awaiting_job_url', 'awaiting_search_url',
+                     'awaiting_limit_for_url', 'awaiting_phone', 'awaiting_sms'):
+
+        if text in ("▶️ Запустить отклики", "⏸️ Остановить"):
+            await handle_toggle_session(update, context, user_id)
+            return
+
+        if text in MENU_BUTTONS:
+            await handle_menu_action(update, context, user_id, MENU_BUTTONS[text])
+            return
+
+    if state == 'awaiting_resume':
+        await process_resume(update, context, user_id, text)
+    elif state == 'awaiting_job':
+        await process_job(update, context, user_id, text)
+    elif state == 'awaiting_limit':
+        await process_limit(update, context, user_id, text)
+    elif state == 'awaiting_custom_letter':
+        await process_custom_letter(update, context, user_id, text)
+    elif state == 'awaiting_job_url':
+        await process_job_url(update, context, user_id, text)
+    elif state == 'awaiting_search_url':
+        await process_search_url(update, context, user_id, text)
+    elif state == 'awaiting_limit_for_url':
+        await process_limit_for_url(update, context, user_id, text)
+    elif state == 'awaiting_phone':
+        await process_phone(update, context, user_id, text)
+    elif state == 'awaiting_sms':
+        await process_sms(update, context, user_id, text)
+    else:
+        await update.message.reply_text("Используйте кнопки меню для навигации.")
+
+
+async def handle_toggle_session(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int):
+    session_active = tb_helpers.get_user_session_active(user_id)
+
+    if session_active:
+        if tb_helpers.stop_session_func:
+            tb_helpers.stop_session_func(user_id)
+            tb_helpers.user_sessions_active[user_id] = False
+        await update.message.reply_text("🔴 Сессия остановлена.")
+        await tb_helpers.show_main_menu(update, context)
+    else:
+        user = await db.AsyncDatabase.get_user(user_id)
+        settings = user.get('settings', {}) if user else {}
+        job_title = settings.get('job_title')
+        limit = settings.get('limit')
+        custom_url = settings.get('custom_search_url')
+
+        if job_title:
+            custom_url = None
+
+        if not job_title and not custom_url:
+            await update.message.reply_text("📝 Введите желаемую должность:")
+            context.user_data['state'] = 'awaiting_job'
+            return
+
+        if not limit:
+            await update.message.reply_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+            return
+
+        if tb_helpers.start_session_func:
+            success = tb_helpers.start_session_func(user_id, job_title or "", limit, custom_url)
+            if success:
+                tb_helpers.user_sessions_active[user_id] = True
+                await tb_helpers.show_main_menu(update, context)
+            else:
+                await update.message.reply_text("⚠️ Сессия уже запущена или произошла ошибка")
+
+
+async def handle_menu_action(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, action: str):
+    if action == "toggle_mode":
+        manual_mode = tb_helpers.get_user_manual_mode(user_id)
+        manual_mode = not manual_mode
+        tb_helpers.user_manual_mode[user_id] = manual_mode
+        user = await db.AsyncDatabase.get_user(user_id)
+        if user:
+            settings = user.get('settings', {})
+            settings['manual_mode'] = manual_mode
+            await db.AsyncDatabase.save_user(user_id, settings=settings)
+        mode_text = "🟡 Ручной" if manual_mode else "🟢 Авто"
+        await update.message.reply_text(f"✅ Режим изменён: {mode_text}")
+        await tb_helpers.show_main_menu(update, context)
+
+    elif action == "stats":
+        stats = await db.AsyncDatabase.get_stats(user_id)
+        text = (
+            f"📊 *СТАТИСТИКА*\n\n"
+            f"📬 Всего откликов: {stats['total']}\n"
+            f"✅ Отправлено: {stats['sent']}\n"
+            f"🛡️ Отклонено Ревазом: {stats['revaz_skip']}\n"
+            f"❌ Ошибок: {stats['error']}\n\n"
+            f"📅 *Сегодня:* {stats['sent_today']}"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Успешные отклики", callback_data="successful_applications")],
+        ])
+        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+    elif action == "resume_menu":
+        from bot.keyboards.main import get_resume_menu_keyboard
+        await update.message.reply_text(
+            "📄 *Управление резюме*\n\nВыбери действие:",
+            parse_mode="Markdown",
+            reply_markup=get_resume_menu_keyboard()
+        )
+
+    elif action == "analyze_resume":
+        resume_text = await db.AsyncDatabase.get_active_resume(user_id)
+        if not resume_text:
+            await update.message.reply_text("❌ Активное резюме не найдено.")
+            return
+        msg = await update.message.reply_text("🔍 Алина анализирует резюме...")
+        await analyze_resume_async(user_id, resume_text, msg, context)
+
+    elif action == "jobs_menu":
+        from bot.keyboards.main import get_jobs_menu_keyboard
+        await update.message.reply_text(
+            "📌 *Управление должностями*\n\nВыбери действие:",
+            parse_mode="Markdown",
+            reply_markup=get_jobs_menu_keyboard()
+        )
+
+    elif action == "start_by_url":
+        await update.message.reply_text(
+            "🔗 *Отправь мне готовую ссылку на поиск hh.ru*\n\n"
+            "Пример: `https://hh.ru/search/vacancy?resume=...`\n\n"
+            "Я запущу отклики по этой ссылке.",
+            parse_mode="Markdown"
+        )
+        context.user_data['state'] = 'awaiting_search_url'
+
+    elif action == "start_hh_login":
+        from core.session_manager import session_manager
+        success = session_manager.start_auth_session(user_id)
+        if success:
+            await update.message.reply_text(
+                "🌐 Открываю браузер...\n\n"
+                "Сейчас появится окно Chrome на компьютере!\n"
+                "Жди следующего сообщения от бота 👇"
+            )
+            context.user_data['state'] = 'awaiting_phone'
+        else:
+            await update.message.reply_text("⚠️ Авторизация уже запущена.")
+
+
+async def analyze_resume_async(user_id: int, resume: str, status_message, context: ContextTypes.DEFAULT_TYPE = None):
+    from services.resume_improver import ResumeImprover
+
+    improver = ResumeImprover()
+    analysis = await run_in_thread(improver.analyze, resume)
+
+    if context:
+        context.user_data['analysis'] = analysis
+        context.user_data['resume_text'] = resume
+        if analysis.get('improved_resume'):
+            context.user_data['improved_resume'] = analysis['improved_resume']
+
+    score = analysis['score']
+
+    text = f"📊 *Оценка резюме: {score}/10*\n\n"
+
+    if analysis['strengths']:
+        text += "*✅ Сильные стороны:*\n"
+        for s in analysis['strengths'][:5]:
+            text += f"• {s}\n"
+        text += "\n"
+
+    if analysis['weaknesses']:
+        text += "*⚠️ Что улучшить:*\n"
+        for w in analysis['weaknesses'][:5]:
+            text += f"• {w}\n"
+        text += "\n"
+
+    if analysis.get('keywords'):
+        text += f"*🔑 Ключевые слова для ATS:*\n{', '.join(analysis['keywords'][:8])}\n\n"
+
+    has_improved = bool(analysis.get('improved_resume'))
+
+    if score < 9:
+        if has_improved:
+            text += "💡 *Алина подготовила улучшенную версию резюме!*\nНажми кнопку чтобы посмотреть и применить."
+        else:
+            text += "💡 *Хочешь сделать резюме более релевантным?*\nНажми кнопку и Алина улучшит его."
+
+    from bot.keyboards.main import get_analysis_keyboard
+    keyboard = get_analysis_keyboard(has_improved=has_improved, score=score)
+    # Убираем проблемные символы для Markdown
+    text = text.replace('`', "'").replace('_', ' ')
+    try:
+        await status_message.edit_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    except Exception:
+        # Fallback без форматирования
+        text_plain = text.replace('*', '').replace('_', '')
+        await status_message.edit_text(text_plain, reply_markup=keyboard)
+
+
+async def analyze_resume_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, resume: str):
+    msg = await update.callback_query.edit_message_text("🔍 Алина анализирует резюме...")
+    await analyze_resume_async(user_id, resume, msg, context)
+
+
+async def process_resume(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    if len(text) < 500:
+        await update.message.reply_text("❌ Резюме слишком короткое. Отправь текст от 500 символов.")
+        return
+
+    await db.AsyncDatabase.save_user(
+        user_id,
+        resume_text=text,
+        resumes=[{"name": "Основное", "text": text}],
+        active_resume_index=0
+    )
+
+    await update.message.reply_text(
+        "✅ *Резюме сохранено!*\n\n"
+        "🔍 Алина сейчас проанализирует его и предложит улучшения...",
+        parse_mode="Markdown"
+    )
+    context.user_data['state'] = None
+    context.user_data['resume_text'] = text
+
+    msg = await update.message.reply_text("⏳ Анализирую...")
+    await analyze_resume_async(user_id, text, msg, context)
+
+
+async def process_job(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, job: str):
+    if not job:
+        await update.message.reply_text("❌ Введите название должности.")
+        return
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['job_title'] = job
+    settings.pop('custom_search_url', None)
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+    await update.message.reply_text(f"✅ Должность сохранена: {job}")
+    context.user_data['state'] = None
+
+    is_editing = context.user_data.pop('editing_job', False)
+    limit = settings.get('limit')
+
+    if is_editing:
+        await show_summary_and_confirm(update, user_id, job, limit or 0)
+    else:
+        if limit:
+            await show_summary_and_confirm(update, user_id, job, limit)
+        else:
+            await update.message.reply_text("📊 Сколько откликов отправить? Введи число:")
+            context.user_data['state'] = 'awaiting_limit'
+
+
+async def process_limit(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    try:
+        limit = int(text)
+        if limit < 1 or limit > 200:
+            await update.message.reply_text("❌ Введи число от 1 до 200.")
+            return
+    except ValueError:
+        await update.message.reply_text("❌ Введи целое число.")
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['limit'] = limit
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+    await update.message.reply_text(f"✅ Лимит установлен: {limit} откликов.")
+    context.user_data['state'] = None
+
+    job_title = settings.get('job_title', 'Не указана')
+    is_editing = context.user_data.pop('editing_limit', False)
+
+    if is_editing:
+        await show_summary_and_confirm(update, user_id, job_title, limit)
+    else:
+        if job_title and job_title != 'Не указана':
+            await show_summary_and_confirm(update, user_id, job_title, limit)
+        else:
+            await update.message.reply_text("📝 Введите желаемую должность:")
+            context.user_data['state'] = 'awaiting_job'
+
+
+async def show_summary_and_confirm(update: Update, user_id: int, job_title: str, limit: int):
+    text = (
+        f"📋 *Проверьте настройки:*\n\n"
+        f"💼 Должность: *{job_title}*\n"
+        f"🔢 Откликов: *{limit}*\n\n"
+        f"Всё верно?"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🚀 Начать работу", callback_data="start_session_confirm")],
+        [InlineKeyboardButton("✏️ Изменить", callback_data="edit_settings")],
+    ])
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    else:
+        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def process_custom_letter(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, instruction: str):
+    vac_id = context.user_data.get('editing_vac_id')
+    if not vac_id:
+        return
+
+    ctx = tb_helpers.pending_vacancies.get(vac_id)
+    if not ctx:
+        await update.message.reply_text("❌ Вакансия не найдена.")
+        return
+
+    await update.message.reply_text("✏️ Редактирую письмо...")
+
+    from core.ai_client import get_ai_client
+    ai = get_ai_client()
+    original_letter = ctx['letter']
+
+    prompt = f"""Отредактируй сопроводительное письмо согласно инструкции пользователя.
+
+Оригинальное письмо:
+{original_letter}
+
+Инструкция пользователя:
+{instruction}
+
+Правила:
+- Сохрани стиль и тон оригинала
+- Не добавляй обращений, подписей, контактов
+- Пиши от мужского лица
+- Верни ТОЛЬКО готовое письмо без пояснений
+
+Готовое письмо:"""
+
+    try:
+        new_letter = await run_in_thread(ai.generate, prompt, max_tokens=600)
+        new_letter = new_letter.strip()
+    except Exception as e:
+        await update.message.reply_text("❌ Ошибка при редактировании. Попробуй ещё раз.")
+        return
+
+    ctx['letter'] = new_letter
+
+    def escape(text: str) -> str:
+        for ch in ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']:
+            text = text.replace(ch, f'\\{ch}')
+        return text
+
+    vacancy_url = ctx['vacancy'].get('url', f"https://hh.ru/vacancy/{ctx['vacancy']['id']}")
+    title = escape(ctx['vacancy']['title'][:60])
+    company = escape(ctx['vacancy'].get('company', 'Не указана'))
+    area = escape(ctx['vacancy'].get('area', 'Не указан'))
+    reason = escape(ctx['revaz_reason'][:300])
+    letter_escaped = escape(new_letter[:1000])
+    revaz_score = ctx['revaz_score']
+
+    if revaz_score >= 70:
+        match_emoji = "🟢"
+    elif revaz_score >= 40:
+        match_emoji = "🟡"
+    else:
+        match_emoji = "🔴"
+
+    text = (
+        f"🎯 [{title}]({vacancy_url})\n\n"
+        f"🏢 {company}\n"
+        f"📍 {area}\n"
+        f"📊 Вероятность матча: {match_emoji} {revaz_score}%\n"
+        f"💡 {reason}\n\n"
+        f"📝 Письмо \\(отредактировано\\):\n{letter_escaped}"
+    )
+
+    from bot.keyboards.main import get_vacancy_card_keyboard
+    keyboard = get_vacancy_card_keyboard(vac_id)
+
+    try:
+        await tb_helpers.telegram_bot.edit_message_text(
+            chat_id=ctx['chat_id'],
+            message_id=ctx['message_id'],
+            text=text,
+            reply_markup=keyboard,
+            parse_mode="MarkdownV2",
+            disable_web_page_preview=True
+        )
+    except Exception as e:
+        logger.error(f"Ошибка обновления карточки: {e}")
+
+    await update.message.reply_text("✅ Письмо обновлено!")
+    context.user_data.pop('editing_vac_id', None)
+    context.user_data['state'] = None
+
+
+async def process_job_url(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, url: str):
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if not parsed.netloc.endswith("hh.ru") or "/search/vacancy" not in parsed.path:
+        await update.message.reply_text("❌ Некорректная ссылка. Убедись, что это ссылка на поиск вакансий hh.ru.")
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['custom_search_url'] = url
+    settings.pop('job_title', None)
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+
+    await update.message.reply_text("✅ Ссылка сохранена. Теперь поиск будет идти по ней.")
+    context.user_data['state'] = None
+    await tb_helpers.show_main_menu(update, context)
+
+
+async def process_search_url(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, url: str):
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if not parsed.netloc.endswith("hh.ru") or "/search/vacancy" not in parsed.path:
+        await update.message.reply_text("❌ Некорректная ссылка. Убедись, что это ссылка на поиск вакансий hh.ru.")
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['custom_search_url'] = url
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+
+    await update.message.reply_text("📊 Сколько откликов отправить? Введи число:")
+    context.user_data['state'] = 'awaiting_limit_for_url'
+    context.user_data['custom_url'] = url
+
+
+async def process_limit_for_url(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    try:
+        limit = int(text)
+        if limit < 1 or limit > 200:
+            await update.message.reply_text("❌ Введи число от 1 до 200.")
+            return
+    except ValueError:
+        await update.message.reply_text("❌ Введи целое число.")
+        return
+
+    custom_url = context.user_data.get('custom_url')
+    if not custom_url:
+        await update.message.reply_text("❌ Ссылка потерялась. Попробуй снова.")
+        context.user_data['state'] = None
+        return
+
+    user = await db.AsyncDatabase.get_user(user_id)
+    settings = user.get('settings', {}) if user else {}
+    settings['limit'] = limit
+    await db.AsyncDatabase.save_user(user_id, settings=settings)
+
+    if tb_helpers.start_session_func:
+        success = tb_helpers.start_session_func(user_id, "", limit, custom_url=custom_url)
+        if success:
+            tb_helpers.user_sessions_active[user_id] = True
+            await update.message.reply_text("🚀 Запускаю отклики по твоей ссылке!")
+            await tb_helpers.show_main_menu(update, context)
+        else:
+            await update.message.reply_text("⚠️ Сессия уже запущена или произошла ошибка")
+    else:
+        await update.message.reply_text("❌ Функция запуска не настроена")
+
+    context.user_data['state'] = None
+    context.user_data.pop('custom_url', None)
+
+
+async def process_phone(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    phone = text.strip().replace(' ', '').replace('-', '')
+    if not phone.isdigit() or len(phone) != 10:
+        await update.message.reply_text(
+            "❌ Неверный формат. Введи 10 цифр без +7 и 8\n"
+            "Пример: `9060295956`",
+            parse_mode="Markdown"
+        )
+        return
+
+    if user_id in tb_helpers.auth_events:
+        tb_helpers.auth_data[user_id]['phone'] = phone
+        tb_helpers.auth_events[user_id].set()
+        context.user_data['state'] = 'awaiting_sms'
+        await update.message.reply_text("✅ Номер принят! Жди SMS от hh.ru...")
+    else:
+        await update.message.reply_text("❌ Сессия авторизации не найдена. Нажми 'Войти' снова.")
+        context.user_data['state'] = None
+
+
+async def process_sms(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, text: str):
+    code = text.strip()
+    if not code.isdigit():
+        await update.message.reply_text("❌ Код должен состоять из цифр. Попробуй ещё раз:")
+        return
+
+    if user_id in tb_helpers.auth_events:
+        tb_helpers.auth_data[user_id]['sms_code'] = code
+        tb_helpers.auth_events[user_id].set()
+        context.user_data['state'] = None
+        await update.message.reply_text("✅ Код принят! Завершаю авторизацию...")
+    else:
+        await update.message.reply_text("❌ Сессия авторизации не найдена.")
+        context.user_data['state'] = None
+```
+
+## bot/keyboards/__init__.py
+
+```python
+
+```
+
+## bot/keyboards/main.py
+
+```python
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+
+def get_main_keyboard(start_stop_text: str, mode_text: str) -> ReplyKeyboardMarkup:
+    keyboard = [
+        [KeyboardButton(start_stop_text), KeyboardButton(f"🔄 Режим")],
+        [KeyboardButton("📊 Статистика"), KeyboardButton("📄 Резюме")],
+        [KeyboardButton("📌 Должности"), KeyboardButton("🔗 По ссылке")],
+        [KeyboardButton("🔐 Авторизация hh.ru")],
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+def get_resume_menu_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton("👁️ Посмотреть активное резюме", callback_data="view_resume")],
+        [InlineKeyboardButton("📤 Загрузить новое резюме", callback_data="upload_resume")],
+        [InlineKeyboardButton("🔄 Сменить активное резюме", callback_data="switch_resume")],
+        [InlineKeyboardButton("🔍 Анализировать текущее", callback_data="analyze_resume")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_analysis_keyboard(has_improved: bool = False, score: int = 5) -> InlineKeyboardMarkup:
+    keyboard = []
+    if has_improved:
+        keyboard.append([InlineKeyboardButton("👀 Посмотреть улучшенное резюме", callback_data="view_improved")])
+        keyboard.append([InlineKeyboardButton("✨ Применить улучшенное", callback_data="apply_improved_onboard")])
+    elif score < 9:
+        keyboard.append([InlineKeyboardButton("✨ Улучшить резюме с Алиной", callback_data="analyze_resume")])
+    keyboard.append([InlineKeyboardButton("⏭️ Оставить как есть и продолжить", callback_data="skip_analysis")])
+    return InlineKeyboardMarkup(keyboard)
+
+def get_settings_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton("🔥 Автоматический", callback_data="mode_auto")],
+        [InlineKeyboardButton("🎯 Ручной (подтверждение)", callback_data="mode_manual")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_job_suggestions_keyboard(jobs: list) -> InlineKeyboardMarkup:
+    keyboard = []
+    for i, job in enumerate(jobs[:8]):
+        keyboard.append([InlineKeyboardButton(job, callback_data=f"use_job_idx_{i}")])
+    keyboard.append([InlineKeyboardButton("✏️ Ввести свою", callback_data="new_job")])
+    return InlineKeyboardMarkup(keyboard)
+
+def get_vacancy_card_keyboard(vacancy_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Откликнуться", callback_data=f"apply_{vacancy_id}")],
+        [InlineKeyboardButton("⏭️ Пропустить", callback_data=f"skip_{vacancy_id}")],
+        [InlineKeyboardButton("📄 Полностью", callback_data=f"full_{vacancy_id}")],
+        [InlineKeyboardButton("✏️ Редактировать", callback_data=f"edit_{vacancy_id}")],
+    ])
+
+def get_confirm_job_keyboard(job_title: str) -> InlineKeyboardMarkup:
+    safe_title = job_title[:50]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"🔍 Искать: {safe_title}", callback_data=f"use_job_{safe_title}")],
+        [InlineKeyboardButton("✏️ Ввести новую", callback_data="new_job")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+    ])
+
+def get_jobs_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✏️ Ввести должность вручную", callback_data="job_manual")],
+        [InlineKeyboardButton("🤖 Подобрать по резюме", callback_data="job_suggest")],
+        [InlineKeyboardButton("👁️ Показать текущую должность", callback_data="job_show")],
+        [InlineKeyboardButton("🔗 Вставить ссылку с фильтрами", callback_data="job_url")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
+    ])
+```
+
+## bot/utils/__init__.py
+
+```python
+
+```
+
+## bot/utils/helpers.py
+
+```python
+import asyncio
+import threading
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from config.settings import TELEGRAM_BOT_TOKEN
+from core.logger import logger
+
+user_sessions_active = {}
+user_stop_flags = {}
+user_manual_mode = {}
+user_decision_events = {}
+
+pending_vacancies = {}
+manual_decisions = {}
+
+PROXY_URL = "socks5://qWshEM:9qau5X@85.195.81.131:11412"
+
+start_session_func = None
+stop_session_func = None
+
+auth_events = {}
+auth_data = {}
+
+current_page = None
+current_ai_client = None
+current_resume = None
+
+telegram_loop = None
+telegram_bot = None
+loop_ready = threading.Event()
+
+
+def set_global_page(page):
+    global current_page
+    current_page = page
+
+
+def set_global_ai_client(ai_client):
+    global current_ai_client
+    current_ai_client = ai_client
+
+
+def set_global_resume(resume_text):
+    global current_resume
+    current_resume = resume_text
+
+
+def set_session_handlers(start_func, stop_func):
+    global start_session_func, stop_session_func
+    start_session_func = start_func
+    stop_session_func = stop_func
+
+
+def get_user_manual_mode(telegram_id: int) -> bool:
+    return user_manual_mode.get(telegram_id, False)
+
+
+def get_user_session_active(telegram_id: int) -> bool:
+    return user_sessions_active.get(telegram_id, False)
+
+
+def get_user_decision_event(telegram_id: int) -> threading.Event:
+    if telegram_id not in user_decision_events:
+        user_decision_events[telegram_id] = threading.Event()
+    return user_decision_events[telegram_id]
+
+
+async def send_message(update: Update, text: str, reply_markup=None, parse_mode="Markdown"):
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        await query.message.reply_text(text=text, reply_markup=reply_markup, parse_mode=parse_mode)
+    else:
+        await update.message.reply_text(text=text, reply_markup=reply_markup, parse_mode=parse_mode)
+
+
+async def show_main_menu(update: Update, context):
+    from bot.keyboards.main import get_main_keyboard
+    user_id = update.effective_user.id
+    manual_mode = get_user_manual_mode(user_id)
+    session_active = get_user_session_active(user_id)
+
+    mode_text = "🟡 Ручной" if manual_mode else "🟢 Авто"
+    start_stop_text = "⏸️ Остановить" if session_active else "▶️ Запустить отклики"
+    keyboard = get_main_keyboard(start_stop_text, mode_text)
+
+    text = (
+        "🤖 *HH Bot Pro*\n\n"
+        f"Статус: {'🟢 Запущен' if session_active else '🔴 Остановлен'}\n"
+        f"Режим: {'🟡 Ручной' if manual_mode else '🟢 Авто'}\n\n"
+        "Выбери действие:"
+    )
+    if update.callback_query:
+        await update.callback_query.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    else:
+        await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def send_vacancy_card(chat_id: int, vacancy: dict, letter: str, revaz_score: int, revaz_reason: str):
+    if not telegram_bot:
+        logger.error("telegram_bot не инициализирован")
+        return None
+
+    def escape(text: str) -> str:
+        for ch in ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']:
+            text = text.replace(ch, f'\\{ch}')
+        return text
+
+    letter_preview = letter[:1000] + "..." if len(letter) > 1000 else letter
+    vacancy_url = vacancy.get('url', f"https://hh.ru/vacancy/{vacancy['id']}")
+
+    title = escape(vacancy['title'][:60])
+    company = escape(vacancy.get('company', 'Не указана'))
+    area = escape(vacancy.get('area', 'Не указан'))
+    reason = escape(revaz_reason[:250])
+    letter_escaped = escape(letter_preview)
+
+    if revaz_score >= 70:
+        match_emoji = "🟢"
+    elif revaz_score >= 40:
+        match_emoji = "🟡"
+    else:
+        match_emoji = "🔴"
+
+    text = (
+        f"🎯 [{title}]({vacancy_url})\n\n"
+        f"🏢 {company}\n"
+        f"📍 {area}\n"
+        f"📊 Вероятность матча: {match_emoji} {revaz_score}%\n"
+        f"💡 {reason}\n\n"
+        f"📝 Письмо:\n{letter_escaped}"
+    )
+
+    from bot.keyboards.main import get_vacancy_card_keyboard
+    keyboard = get_vacancy_card_keyboard(vacancy['id'])
+
+    try:
+        msg = await telegram_bot.send_message(
+            chat_id, text,
+            reply_markup=keyboard,
+            parse_mode="MarkdownV2",
+            disable_web_page_preview=True
+        )
+    except Exception as e:
+        logger.error(f"Ошибка отправки карточки: {e}")
+        msg = await telegram_bot.send_message(
+            chat_id,
+            f"🎯 {vacancy['title'][:60]}\n"
+            f"🏢 {vacancy.get('company','Не указана')}\n"
+            f"📍 {vacancy.get('area','Не указан')}\n"
+            f"📊 Вероятность матча: {revaz_score}%\n"
+            f"💡 {revaz_reason[:150]}\n\n"
+            f"📝 Письмо:\n{letter[:500]}",
+            reply_markup=keyboard,
+            disable_web_page_preview=True
+        )
+
+    pending_vacancies[vacancy['id']] = {
+        'vacancy': vacancy,
+        'letter': letter,
+        'message_id': msg.message_id,
+        'chat_id': chat_id,
+        'revaz_score': revaz_score,
+        'revaz_reason': revaz_reason
+    }
+    return msg
+
+
+async def send_auto_apply_card(chat_id: int, vacancy: dict, letter: str, revaz_score: int = 0, revaz_reason: str = ""):
+    """Отправляет карточку об успешном авто-отклике с вероятностью матча"""
+    if not telegram_bot:
+        return
+    vacancy_url = vacancy.get('url', f"https://hh.ru/vacancy/{vacancy['id']}")
+
+    if revaz_score >= 70:
+        match_emoji = "🟢"
+    elif revaz_score >= 40:
+        match_emoji = "🟡"
+    else:
+        match_emoji = "🔴"
+
+    text = (
+        f"✅ Отклик отправлен (авто)\n\n"
+        f"🎯 {vacancy['title'][:60]}\n"
+        f"🏢 {vacancy.get('company', 'Не указана')}\n"
+        f"📍 {vacancy.get('area', 'Не указан')}\n"
+        f"📊 Вероятность матча: {match_emoji} {revaz_score}%\n"
+        f"💡 {revaz_reason[:150]}\n\n"
+        f"📝 Письмо:\n{letter[:500]}"
+    )
+    await telegram_bot.send_message(chat_id, text, disable_web_page_preview=True)
+```
+
+## chrome_profiles/230029785/optimization_guide_model_store/15/DC3E7836E4D434CA/489D352DAA56C92D/VERSION.txt
+
+```python
+This is the model for the Browsing Topics Privacy Sandbox feature.
+
+Model Version: 5
+Taxonomy Version: v2
+
+```
+
+## chrome_profiles/368543822/optimization_guide_model_store/15/DC3E7836E4D434CA/8E9F0D8AA314A4FA/VERSION.txt
+
+```python
+This is the model for the Browsing Topics Privacy Sandbox feature.
+
+Model Version: 5
+Taxonomy Version: v2
+
+```
+
+## chrome_profiles/407158325/optimization_guide_model_store/15/DC3E7836E4D434CA/E0D317483EFBDEBD/VERSION.txt
+
+```python
+This is the model for the Browsing Topics Privacy Sandbox feature.
+
+Model Version: 5
+Taxonomy Version: v2
+
+```
+
+## chrome_profiles/586256947/optimization_guide_model_store/15/DC3E7836E4D434CA/71C716BB55272F5B/VERSION.txt
+
+```python
+This is the model for the Browsing Topics Privacy Sandbox feature.
+
+Model Version: 5
+Taxonomy Version: v2
+
+```
+
+## chrome_profiles/7877869858/optimization_guide_model_store/15/DC3E7836E4D434CA/283E62C40C0AEE74/VERSION.txt
+
+```python
+This is the model for the Browsing Topics Privacy Sandbox feature.
+
+Model Version: 5
+Taxonomy Version: v2
+
+```
+
+## chrome_profiles/8769443682/optimization_guide_model_store/15/DC3E7836E4D434CA/F0D0C594C55452DC/VERSION.txt
+
+```python
+This is the model for the Browsing Topics Privacy Sandbox feature.
+
+Model Version: 5
+Taxonomy Version: v2
+
+```
+
+## config/__init__.py
+
+```python
+
+```
+
+## config/settings.py
+
+```python
+"""
+Настройки HH Bot Pro
+"""
+import os
+import random
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ============================================
+# ПУТИ
+# ============================================
+BASE_DIR = Path(__file__).parent.parent
+DATA_DIR = BASE_DIR / "data"
+LOGS_DIR = BASE_DIR / "logs"
+
+LOGS_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(exist_ok=True)
+
+# ============================================
+# ПОЛЬЗОВАТЕЛЬ
+# ============================================
+DEFAULT_USER_ID = "default"
+USER_DATA_DIR = DATA_DIR / DEFAULT_USER_ID
+USER_DATA_DIR.mkdir(exist_ok=True)
+
+RESUME_FILE = USER_DATA_DIR / "resume.txt"
+PROFILE_FILE = USER_DATA_DIR / "profile.json"
+HISTORY_FILE = USER_DATA_DIR / "history.json"
+SEARCHES_FILE = USER_DATA_DIR / "searches.json"
+STOP_FILE = BASE_DIR / "stop_signal.txt"
+
+# ============================================
+# HH НАСТРОЙКИ
+# ============================================
+BOT_PROFILE = os.getenv("HH_BOT_PROFILE", str(BASE_DIR / "chrome_profile"))
+CHROME_PATH = os.getenv("CHROME_PATH", r"C:\Program Files\Google\Chrome\Application\chrome.exe")
+
+TIMEOUT = 60000
+PAGE_LOAD_WAIT = 5
+PAUSE_BETWEEN_VACANCIES = (7, 14)
+PAUSE_AFTER_APPLY = (5, 10)
+
+# ============================================
+# AI НАСТРОЙКИ
+# ============================================
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS", "")
+
+AI_PRIMARY = "deepseek"
+AI_FALLBACK = "gigachat"
+
+# ============================================
+# РЕЖИМЫ РАБОТЫ
+# ============================================
+VALIDATION_MODE = os.getenv("VALIDATION_MODE", "revaz")
+SEARCH_MODE = os.getenv("SEARCH_MODE", "smart")
+
+MAX_APPLIES_PER_SESSION = int(os.getenv("MAX_APPLIES_PER_SESSION", "18"))
+MAX_APPLIES_PER_DAY = int(os.getenv("MAX_APPLIES_PER_DAY", "100"))
+
+# ============================================
+# TELEGRAM НАСТРОЙКИ
+# ============================================
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID", "")
+
+# ============================================
+# ПОИСКОВАЯ ССЫЛКА
+# ============================================
+SEARCH_URL = "https://hh.ru/search/vacancy?text=Project+manager+it+%D1%81%D1%82%D0%B0%D0%B6%D0%B5%D1%80&excluded_text=&area=1&salary=&salary=&currency_code=RUR&experience=doesNotMatter&order_by=relevance&search_period=0&items_on_page=50&L_save_area=true&hhtmFrom=vacancy_search_filter"
+
+# ============================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================
+def get_random_pause(pause_range: tuple) -> float:
+    return random.uniform(*pause_range)
+
+def ensure_dirs():
+    dirs = [DATA_DIR, LOGS_DIR, USER_DATA_DIR]
+    for d in dirs:
+        d.mkdir(parents=True, exist_ok=True)
+
+ensure_dirs()
+```
+
+## core/__init__.py
+
+```python
+
+```
+
+## core/ai_client.py
+
+```python
+"""
+AI-клиент только для DeepSeek с асинхронными обёртками
+"""
+import os
+import asyncio
+from typing import Optional
+from dotenv import load_dotenv
+from openai import OpenAI
+from config.settings import DEEPSEEK_API_KEY
+from core.logger import logger, log_ai
+
+load_dotenv()
+
+class AIClient:
+    def __init__(self):
+        self.deepseek_client = None
+        self._init_deepseek()
+    
+    def _init_deepseek(self):
+        if DEEPSEEK_API_KEY:
+            try:
+                self.deepseek_client = OpenAI(
+                    api_key=DEEPSEEK_API_KEY,
+                    base_url="https://api.deepseek.com/v1"
+                )
+                logger.info("✅ DeepSeek подключен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка подключения DeepSeek: {e}")
+                self.deepseek_client = None
+        else:
+            logger.warning("⚠️ DeepSeek API ключ не найден")
+    
+    def generate_with_deepseek(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500) -> str:
+        if not self.deepseek_client:
+            raise Exception("DeepSeek не настроен")
+        
+        response = self.deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        result = response.choices[0].message.content.strip()
+        log_ai("DeepSeek", prompt[:200], result)
+        return result
+    
+    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500) -> str:
+        return self.generate_with_deepseek(prompt, temperature, max_tokens)
+    
+    def is_available(self) -> bool:
+        return self.deepseek_client is not None
+
+_ai_client: Optional[AIClient] = None
+_init_lock = asyncio.Lock()
+
+async def get_ai_client_async() -> AIClient:
+    """Асинхронное получение AI-клиента (инициализация в отдельном потоке)"""
+    global _ai_client
+    if _ai_client is None:
+        async with _init_lock:
+            if _ai_client is None:
+                from core.async_executor import run_in_thread
+                _ai_client = await run_in_thread(_init_ai_client_sync)
+    return _ai_client
+
+def _init_ai_client_sync() -> AIClient:
+    """Синхронная инициализация (вызывается в потоке)"""
+    return AIClient()
+
+def get_ai_client() -> AIClient:
+    """Синхронное получение (для использования в потоках сессий)"""
+    global _ai_client
+    if _ai_client is None:
+        _ai_client = AIClient()
+    return _ai_client
+```
+
+## core/async_executor.py
+
+```python
+"""
+Асинхронный исполнитель для CPU/IO-bound задач в Telegram-боте.
+Использует ThreadPoolExecutor для неблокирующего выполнения синхронных функций.
+"""
+import asyncio
+import concurrent.futures
+from core.logger import logger
+
+# Пул из 10 потоков (можно увеличить при необходимости)
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="tg_worker")
+
+async def run_in_thread(func, *args, **kwargs):
+    """
+    Выполняет синхронную функцию func(*args, **kwargs) в отдельном потоке,
+    не блокируя event loop.
+    """
+    loop = asyncio.get_running_loop()
+    try:
+        return await loop.run_in_executor(_executor, lambda: func(*args, **kwargs))
+    except Exception as e:
+        logger.error(f"Ошибка в потоке {func.__name__}: {e}")
+        raise
+```
+
+## core/browser.py
+
+```python
+import subprocess
+import time
+from pathlib import Path
+from contextlib import contextmanager
+from playwright.sync_api import sync_playwright
+from config.settings import CHROME_PATH, TIMEOUT, BASE_DIR
+from core.logger import logger
+
+
+def get_user_profile_path(telegram_id: int) -> str:
+    """Возвращает путь к папке профиля Chrome для пользователя"""
+    profile_dir = BASE_DIR / "chrome_profiles" / str(telegram_id)
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    return str(profile_dir)
+
+
+@contextmanager
+def launch_browser(telegram_id: int = None, headless: bool = False):
+    """
+    Запускает браузер с профилем пользователя.
+    Если telegram_id не указан, используется профиль по умолчанию.
+    """
+    if telegram_id:
+        user_data_dir = get_user_profile_path(telegram_id)
+    else:
+        user_data_dir = str(BASE_DIR / "chrome_profile")
+        # Убедимся, что папка существует
+        Path(user_data_dir).mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Запуск браузера с профилем: {user_data_dir}")
+
+    # Не убиваем все Chrome, чтобы не мешать другим сессиям
+    # subprocess.run("taskkill /f /im chrome.exe 2>nul", shell=True)
+    # time.sleep(2)
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch_persistent_context(
+            user_data_dir=user_data_dir,
+            headless=headless,
+            slow_mo=800,
+            executable_path=CHROME_PATH,
+            viewport={'width': 1280, 'height': 800},
+            args=[
+                '--no-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage'
+            ]
+        )
+        page = browser.pages[0] if browser.pages else browser.new_page()
+        page.set_default_timeout(TIMEOUT)
+
+        page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+        """)
+
+        logger.info("Браузер запущен")
+        try:
+            yield page
+        finally:
+            logger.info("Закрытие браузера...")
+            try:
+                browser.close()
+            except Exception:
+                pass
+```
+
+## core/logger.py
+
+```python
+"""
+Расширенное логирование для HH Bot Pro с общим логом all.log
+"""
+import logging
+import sys
+from pathlib import Path
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
+from typing import Optional
+
+from config.settings import LOGS_DIR
+
+# Форматы
+CONSOLE_FORMAT = "%(asctime)s | %(levelname)-8s | %(message)s"
+FILE_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s"
+DATE_FORMAT = "%H:%M:%S"
+FILE_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+class HHLogger:
+    _instance: Optional['HHLogger'] = None
+    _logger: Optional[logging.Logger] = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._setup_logger()
+        return cls._instance
+
+    def _setup_logger(self):
+        self._logger = logging.getLogger("HHBot")
+        self._logger.setLevel(logging.DEBUG)
+        self._logger.handlers.clear()
+
+        # Консоль (INFO и выше)
+        console = logging.StreamHandler(sys.stdout)
+        console.setLevel(logging.INFO)
+        console.setFormatter(logging.Formatter(CONSOLE_FORMAT, DATE_FORMAT))
+        self._logger.addHandler(console)
+
+        # Основной файл (DEBUG и выше)
+        debug = RotatingFileHandler(LOGS_DIR / "debug.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        debug.setLevel(logging.DEBUG)
+        debug.setFormatter(logging.Formatter(FILE_FORMAT, FILE_DATE_FORMAT))
+        self._logger.addHandler(debug)
+
+        # Ошибки (ERROR и выше)
+        error = RotatingFileHandler(LOGS_DIR / "error.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        error.setLevel(logging.ERROR)
+        error.setFormatter(logging.Formatter(FILE_FORMAT, FILE_DATE_FORMAT))
+        self._logger.addHandler(error)
+
+        # ========== ОБЩИЙ ЛОГ ДЛЯ GITHUB (INFO и выше) ==========
+        all_handler = RotatingFileHandler(LOGS_DIR / "all.log", maxBytes=10*1024*1024, backupCount=3, encoding='utf-8')
+        all_handler.setLevel(logging.INFO)
+        all_handler.setFormatter(logging.Formatter(FILE_FORMAT, FILE_DATE_FORMAT))
+        self._logger.addHandler(all_handler)
+
+        # Логгер откликов
+        self._apply_logger = logging.getLogger("HHBot.Applies")
+        self._apply_logger.setLevel(logging.INFO)
+        apply_handler = RotatingFileHandler(LOGS_DIR / "applies.log", maxBytes=10*1024*1024, backupCount=10, encoding='utf-8')
+        apply_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._apply_logger.addHandler(apply_handler)
+        self._apply_logger.propagate = False
+
+        # Логгер AI
+        self._ai_logger = logging.getLogger("HHBot.AI")
+        self._ai_logger.setLevel(logging.DEBUG)
+        ai_handler = RotatingFileHandler(LOGS_DIR / "ai.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        ai_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._ai_logger.addHandler(ai_handler)
+        self._ai_logger.propagate = False
+
+        # Логгер HTTP (Telegram API)
+        self._http_logger = logging.getLogger("HHBot.HTTP")
+        self._http_logger.setLevel(logging.DEBUG)
+        http_handler = RotatingFileHandler(LOGS_DIR / "http.log", maxBytes=10*1024*1024, backupCount=3, encoding='utf-8')
+        http_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._http_logger.addHandler(http_handler)
+        self._http_logger.propagate = False
+
+        # Логгер браузера
+        self._browser_logger = logging.getLogger("HHBot.Browser")
+        self._browser_logger.setLevel(logging.DEBUG)
+        browser_handler = RotatingFileHandler(LOGS_DIR / "browser.log", maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+        browser_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", FILE_DATE_FORMAT))
+        self._browser_logger.addHandler(browser_handler)
+        self._browser_logger.propagate = False
+
+    def get_logger(self): return self._logger
+    def get_apply_logger(self): return self._apply_logger
+    def get_ai_logger(self): return self._ai_logger
+    def get_http_logger(self): return self._http_logger
+    def get_browser_logger(self): return self._browser_logger
+
+_logger_instance = HHLogger()
+logger = _logger_instance.get_logger()
+apply_logger = _logger_instance.get_apply_logger()
+ai_logger = _logger_instance.get_ai_logger()
+http_logger = _logger_instance.get_http_logger()
+browser_logger = _logger_instance.get_browser_logger()
+
+def log_startup():
+    logger.info("=" * 60)
+    logger.info(f"🚀 HH BOT PRO STARTED | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=" * 60)
+
+def log_shutdown(total_applies: int = 0):
+    logger.info("=" * 60)
+    logger.info(f"🏁 HH BOT PRO FINISHED | Откликов: {total_applies}")
+    logger.info("=" * 60)
+
+def log_apply(vacancy_id: str, title: str, status: str, letter_preview: str = "", error: str = ""):
+    if status == "sent":
+        msg = f"✅ SENT | {vacancy_id} | {title[:50]}"
+        if letter_preview: msg += f"\n   📝 {letter_preview[:100]}..."
+    elif status == "error":
+        msg = f"❌ ERROR | {vacancy_id} | {title[:50]} | {error}"
+    elif status == "skip":
+        msg = f"⏭️ SKIP | {vacancy_id} | {title[:50]}"
+    elif status == "revaz_skip":
+        msg = f"🛡️ REVAZ SKIP | {vacancy_id} | {title[:50]} | {error}"
+    else:
+        msg = f"ℹ️ {status} | {vacancy_id} | {title[:50]}"
+    apply_logger.info(msg)
+
+def log_ai(prompt_type: str, input_data: str, output: str, error: str = None):
+    sep = "-" * 50
+    if error:
+        ai_logger.error(f"{sep}\n🔴 ERROR | {prompt_type}\nInput: {input_data[:200]}...\nError: {error}\n{sep}")
+    else:
+        ai_logger.debug(f"{sep}\n🟢 {prompt_type}\nInput: {input_data[:500]}...\nOutput: {output[:500]}...\n{sep}")
+
+def log_http(method: str, url: str, status: int = None, error: str = None):
+    if error:
+        http_logger.error(f"{method} {url} | ERROR: {error}")
+    else:
+        http_logger.debug(f"{method} {url} | Status: {status}")
+
+def log_browser(action: str, url: str = "", details: str = ""):
+    browser_logger.debug(f"🌐 {action} | {url} | {details}")
+```
+
+## core/prompts.py
+
+```python
+"""
+Промпты для AI-агентов HH Bot Pro
+"""
+
+# ============================================
+# СТРУКТУРИРОВАННОЕ ПИСЬМО (ВОЗВРАЩЁННЫЙ РАЗВЁРНУТЫЙ СТИЛЬ)
+# ============================================
+COVER_LETTER_STRUCTURED = """
+Ты — Junior Product Manager, который чувствует продукт и пользователя. Ты создавал продукт в одиночку через vibe coding и знаешь, что каждая фича должна быть удобной и понятной. Пишешь живое сопроводительное письмо, опираясь только на факты из резюме.
+
+**ГЛАВНЫЙ ЗАПРЕТ (провал при нарушении):**
+НЕЛЬЗЯ начинать письмо со слов «Вижу», «Смотрю», «Ознакомился», «Читаю», «Понимаю, что ключевая задача» или любых других фраз, которые звучат как «я прочитал вакансию». Начинай сразу с сути: с твоего опыта, с понимания задачи, с конкретного результата.
+
+**ОСТАЛЬНЫЕ ЗАПРЕТЫ:**
+- НЕЛЬЗЯ упоминать название компании-работодателя из вакансии.
+- НЕЛЬЗЯ писать обращения, подписи, контакты, «С уважением».
+- НЕЛЬЗЯ перечислять названия компаний из резюме — только обобщения: «в ритейле», «в IT-проектах», «в digital-агентстве».
+- НЕЛЬЗЯ выдумывать цифры и факты, которых нет в резюме.
+
+**ПРИНЦИПЫ НАПИСАНИЯ:**
+1. **Стартуй с ходу, без разогрева.** Первое предложение должно сразу нести смысл: твой опыт, результат, понимание задачи. Никаких «я прочитал», «мне интересно», «вижу, что...».
+2. **Покажи самостоятельность.** Упомяни, что проект создавался с нуля через vibe coding — это доказывает твою способность быстро разрабатывать без большой команды, при этом держа в голове удобство для конечного пользователя.
+3. **Веди рассказ через заботу о пользователе.** Когда приводишь факты, добавляй контекст: почему это улучшение сделало жизнь пользователя проще, интерфейс — интуитивнее, а путь — короче.
+4. **Привязывай опыт к задачам вакансии.** Покажи, как твои навыки управления продуктом, аналитики или проектной работы решают их боли — и как это в конечном счёте отразится на опыте их пользователей или клиентов.
+5. **Конец — призыв к действию.** «Готов обсудить, как этот опыт применить у вас» или «Готов детально обсудить на собеседовании» — естественное завершение разговора.
+
+**СТИЛЬ:** деловой, живой, без воды. Максимум 3 коротких абзаца, общий объём не более 350 символов. Пиши так, будто ты лично общаешься с будущим руководителем: уважительно, но без лести, с огнём в глазах и искренним интересом к продукту и людям, для которых он создаётся.
+
+**Резюме кандидата:**
+{resume}
+
+**Вакансия:**
+{title}
+
+**Требования:**
+{description}
+
+Напиши ТОЛЬКО письмо (без дополнительных пояснений и кавычек):
+"""
+
+# ============================================
+# РЕВАЗ — ФОРМИРОВАНИЕ ЧЕК-ЛИСТА
+# ============================================
+REVAZ_CHECKLIST_PROMPT = """
+Ты — Реваз, технический скринер вакансий. Выдели требования из вакансии для проверки по резюме.
+
+**Вакансия:**
+{vacancy_title}
+{vacancy_description}
+
+**Резюме (для контекста):**
+{resume}
+
+Верни JSON-массив объектов с полями requirement и critical (true/false).
+critical=true только для явно обязательных требований.
+Максимум 7 пунктов, без софт-скиллов.
+Ответь ТОЛЬКО JSON-массивом без лишнего текста.
+"""
+
+REVAZ_VERDICT_PROMPT = """
+Ты — Реваз, технический скринер. Оцени насколько резюме подходит под вакансию.
+
+**Вакансия:** {vacancy_title}
+{vacancy_description}
+
+**Чек-лист требований:**
+{checklist}
+
+**Резюме кандидата:**
+{resume}
+
+Внимательно проверь каждый пункт чек-листа по резюме и дай честную оценку.
+
+Ответь СТРОГО в этом формате:
+ВЕРДИКТ: PASS или FAIL
+СКОР: XX% (честная оценка на основе анализа, не угадывай)
+ПРИЧИНА: 1-2 предложения что совпало и чего не хватает
+ДЕТАЛИ: по каждому пункту чек-листа ✅ или ❌ и название требования
+"""
+# ============================================
+# АЛИНА — ПРОВЕРКА СТИЛЯ (НЕ ИСПОЛЬЗУЕТСЯ, ОСТАВЛЕНО ДЛЯ СОВМЕСТИМОСТИ)
+# ============================================
+ALINA_VALIDATE_PROMPT = """
+Ты — Алина. Проверь текст сопровождения.
+Критерии: нет обращений/подписей/контактов, 150-400 символов, конкретика, мужской род.
+Ответь: ОЦЕНКА: X/10, ПРОБЛЕМЫ: ..., ВЕРДИКТ: SEND / IMPROVE
+"""
+
+# ============================================
+# АЛИНА — УЛУЧШЕНИЕ ТЕКСТА (НЕ ИСПОЛЬЗУЕТСЯ)
+# ============================================
+ALINA_IMPROVE_PROMPT = """
+Ты — Алина. Перепиши текст, исправив проблемы, но соблюдая запреты.
+Напиши ТОЛЬКО исправленный текст.
+"""
+
+# ============================================
+# ОТВЕТ НА ТЕСТОВЫЙ ВОПРОС
+# ============================================
+TEST_ANSWER_PROMPT = """
+Ответь на вопрос работодателя (1-2 предложения).
+Вопрос: {question}
+Резюме: {resume}
+Ответ:
+"""
+
+# ============================================
+# АЛИНА — АНАЛИЗ РЕЗЮМЕ (БЕЗ ВЫДУМКИ)
+# ============================================
+RESUME_ANALYSIS_PROMPT = """
+Ты — Алина, строгий HR. Проанализируй резюме, работая ТОЛЬКО с имеющейся информацией.
+
+**Резюме:**
+{resume}
+
+Оценка от 1 до 10, сильные стороны, слабые стороны (рекомендации по формулировкам, без придумывания), ключевые слова для ATS, JSON с improvements.
+НЕ ПИШИ улучшенную версию резюме в этом ответе!
+"""
+
+# ============================================
+# АЛИНА — ГЕНЕРАЦИЯ УЛУЧШЕННОГО РЕЗЮМЕ (БЕЗ ВЫДУМКИ)
+# ============================================
+RESUME_IMPROVE_PROMPT = """
+Ты — Алина. Перепиши резюме, улучшив структуру и стиль, НЕ добавляя новых фактов.
+**Исходное резюме:** {original_resume}
+**Инструкции:** {improvements}
+Напиши ПОЛНОСТЬЮ готовое резюме.
+"""
+
+# ============================================
+# AI-ПОДБОР ДОЛЖНОСТЕЙ
+# ============================================
+JOB_SUGGESTIONS_PROMPT = """
+Ты — карьерный консультант. На основе резюме предложи 5-10 названий должностей для поиска на hh.ru.
+**Резюме:** {resume}
+Выведи ТОЛЬКО JSON-массив строк.
+"""
+
+# ============================================
+# СВЕТЛАНА ВИКТОРОВНА — ПРОВЕРКА РУССКОГО ЯЗЫКА
+# ============================================
+SVETLANA_VALIDATE_PROMPT = """
+Ты — Светлана Викторовна. Проверь текст на грамматику и стиль.
+**Письмо:** {letter}
+Если есть ошибки, напиши ИСПРАВЛЕННОЕ ПИСЬМО. Если ошибок нет, напиши «ОШИБОК НЕТ».
+"""
+```
+
+## core/session_manager.py
+
+```python
+"""
+Менеджер сессий для многопользовательской работы
+"""
+import threading
+import asyncio
+from typing import Dict, Optional
+from core.logger import logger
+import bot.utils.helpers as tb_helpers
+
+
+class SessionManager:
+    def __init__(self):
+        self._sessions: Dict[int, threading.Thread] = {}
+        self._auth_sessions: Dict[int, threading.Thread] = {}
+        self._lock = threading.Lock()
+
+    def start_auth_session(self, telegram_id: int) -> bool:
+        with self._lock:
+            if telegram_id in self._auth_sessions and self._auth_sessions[telegram_id].is_alive():
+                logger.warning(f"Авторизация для {telegram_id} уже запущена")
+                return False
+            thread = threading.Thread(
+                target=self._run_auth_session,
+                args=(telegram_id,),
+                daemon=True
+            )
+            self._auth_sessions[telegram_id] = thread
+            thread.start()
+            logger.info(f"Авторизация для {telegram_id} запущена")
+            return True
+
+    def _run_auth_session(self, telegram_id: int):
+        import time
+        from core.browser import launch_browser
+        from services.hh_auth import login_to_hh
+
+        try:
+            with launch_browser(telegram_id=telegram_id) as page:
+                asyncio.run_coroutine_threadsafe(
+                    tb_helpers.telegram_bot.send_message(
+                        telegram_id,
+                        "🌐 Браузер открыт!\n\n"
+                        "📱 Введи номер телефона (10 цифр без +7 и 8):\n"
+                        "Пример: `9060295956`"
+                    ),
+                    tb_helpers.telegram_loop
+                )
+
+                tb_helpers.auth_events[telegram_id] = threading.Event()
+                tb_helpers.auth_data[telegram_id] = {}
+                tb_helpers.auth_events[telegram_id].wait(timeout=120)
+
+                phone = tb_helpers.auth_data[telegram_id].get('phone')
+                if not phone:
+                    asyncio.run_coroutine_threadsafe(
+                        tb_helpers.telegram_bot.send_message(telegram_id, "❌ Таймаут. Попробуй снова."),
+                        tb_helpers.telegram_loop
+                    )
+                    return
+
+                tb_helpers.auth_events[telegram_id].clear()
+
+                def sms_code_getter():
+                    asyncio.run_coroutine_threadsafe(
+                        tb_helpers.telegram_bot.send_message(
+                            telegram_id,
+                            "📨 Номер введён! Жди SMS от hh.ru.\n\nВведи код из SMS:"
+                        ),
+                        tb_helpers.telegram_loop
+                    )
+                    tb_helpers.auth_events[telegram_id].wait(timeout=120)
+                    return tb_helpers.auth_data[telegram_id].get('sms_code')
+
+                success = login_to_hh(page, phone, sms_code_getter)
+
+                if success:
+                    asyncio.run_coroutine_threadsafe(
+                        tb_helpers.telegram_bot.send_message(
+                            telegram_id,
+                            "✅ Авторизация успешна! Сессия сохранена.\n\nТеперь можешь запускать отклики!"
+                        ),
+                        tb_helpers.telegram_loop
+                    )
+                else:
+                    asyncio.run_coroutine_threadsafe(
+                        tb_helpers.telegram_bot.send_message(telegram_id, "❌ Авторизация не удалась. Попробуй снова."),
+                        tb_helpers.telegram_loop
+                    )
+
+        except Exception as e:
+            logger.exception(f"Ошибка авторизации для {telegram_id}: {e}")
+            asyncio.run_coroutine_threadsafe(
+                tb_helpers.telegram_bot.send_message(telegram_id, f"❌ Ошибка: {e}"),
+                tb_helpers.telegram_loop
+            )
+        finally:
+            with self._lock:
+                if telegram_id in self._auth_sessions:
+                    del self._auth_sessions[telegram_id]
+            tb_helpers.auth_events.pop(telegram_id, None)
+            tb_helpers.auth_data.pop(telegram_id, None)
+
+    def start_session(self, telegram_id: int, job_title: str, limit: int, custom_url: str = None) -> bool:
+        with self._lock:
+            if telegram_id in self._sessions and self._sessions[telegram_id].is_alive():
+                logger.warning(f"Сессия для {telegram_id} уже активна")
+                return False
+            thread = threading.Thread(
+                target=self._run_hh_session,
+                args=(telegram_id, job_title, limit, custom_url),
+                daemon=True
+            )
+            self._sessions[telegram_id] = thread
+            thread.start()
+            logger.info(f"Сессия для {telegram_id} запущена")
+            return True
+
+    def stop_session(self, telegram_id: int):
+        with self._lock:
+            if telegram_id in self._sessions:
+                tb_helpers.user_stop_flags[telegram_id] = True
+                logger.info(f"Отправлен сигнал остановки для {telegram_id}")
+            else:
+                logger.warning(f"Нет активной сессии для {telegram_id}")
+
+    def is_session_running(self, telegram_id: int) -> bool:
+        with self._lock:
+            thread = self._sessions.get(telegram_id)
+            return thread is not None and thread.is_alive()
+
+    def _run_hh_session(self, telegram_id: int, job_title: str, limit: int, custom_url: str = None):
+        import time
+        import random
+        from urllib.parse import quote
+        from core.browser import launch_browser
+        from core.ai_client import get_ai_client
+        from services.hh_parser import collect_vacancies_from_url, get_vacancy_description
+        from services.applier import apply_to_vacancy
+        from services.letter_generator import LetterGenerator
+        from services.revaz_agent import RevazAgent
+        from services.alina_validator import AlinaValidator
+        from storage.history_repository import add_application, get_applied_ids
+        from storage.database import SyncDatabase
+
+        tb_helpers.user_sessions_active[telegram_id] = True
+        tb_helpers.user_stop_flags[telegram_id] = False
+
+        try:
+            user = SyncDatabase.get_user(telegram_id)
+            if not user:
+                logger.error(f"Пользователь {telegram_id} не найден")
+                return
+            resume = SyncDatabase.get_active_resume(telegram_id)
+            if not resume:
+                logger.error(f"У пользователя {telegram_id} нет активного резюме")
+                return
+
+            settings = user.get('settings', {})
+            manual = settings.get('manual_mode', False)
+            tb_helpers.user_manual_mode[telegram_id] = manual
+
+            if custom_url:
+                search_url = custom_url
+            else:
+                search_query = quote(job_title)
+                search_url = f"https://hh.ru/search/vacancy?text={search_query}&area=1"
+
+            ai_client = get_ai_client()
+            letter_gen = LetterGenerator()
+            revaz = RevazAgent(resume)
+            alina = AlinaValidator()
+            applied_ids = get_applied_ids(telegram_id)
+            total_applies = 0
+
+            with launch_browser(telegram_id=telegram_id) as page:
+                tb_helpers.set_global_page(page)
+                tb_helpers.set_global_ai_client(ai_client)
+                tb_helpers.set_global_resume(resume)
+
+                time.sleep(random.uniform(2, 5))
+                max_pages = max(1, (limit - 1) // 50 + 1)
+                vacancies = collect_vacancies_from_url(page, search_url, telegram_id, chat_id=telegram_id, max_pages=max_pages)
+                if not vacancies:
+                    logger.warning("Вакансий не найдено")
+                    return
+
+                for vac in vacancies[:limit]:
+                    if tb_helpers.user_stop_flags.get(telegram_id, False):
+                        break
+                    if vac['id'] in applied_ids:
+                        continue
+
+                    logger.info(f"🎯 {vac['title'][:50]}")
+                    try:
+                        vac_text, salary, company, area = get_vacancy_description(page, vac['url'])
+                        if salary != 'Не указана':
+                            vac['salary'] = salary
+                        if company != 'Не указана':
+                            vac['company'] = company
+                        if area != 'Не указан':
+                            vac['area'] = area
+                        if not vac_text:
+                            vac_text = ""
+
+                        passed, reason, revaz_score = revaz.check(vac, vac_text)
+
+                        if not passed and not manual:
+                            add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'revaz_skip', error=reason)
+                            continue
+
+                        letter = letter_gen.generate(resume, vac_text, vac['title'])
+                        vac['company'] = vac.get('company', 'Не указана')
+                        vac['salary'] = vac.get('salary', 'Не указана')
+                        vac['area'] = vac.get('area', 'Не указан')
+
+                        if manual:
+                            logger.info(f"🟡 Ручной режим: {vac['title'][:40]}")
+                            tb_helpers.manual_decisions.pop(vac['id'], None)
+                            tb_helpers.get_user_decision_event(telegram_id).clear()
+
+                            if tb_helpers.telegram_loop:
+                                asyncio.run_coroutine_threadsafe(
+                                    tb_helpers.send_vacancy_card(telegram_id, vac, letter, revaz_score, reason),
+                                    tb_helpers.telegram_loop
+                                )
+                            else:
+                                continue
+
+                            decision = None
+                            start_wait = time.time()
+                            event = tb_helpers.user_decision_events[telegram_id]
+                            while time.time() - start_wait < 120:
+                                if event.wait(timeout=1):
+                                    decision = tb_helpers.manual_decisions.get(vac['id'])
+                                    break
+                                if tb_helpers.user_stop_flags.get(telegram_id, False):
+                                    break
+
+                            if decision == "apply":
+                                success = apply_to_vacancy(page, vac, letter, resume, ai_client)
+                                if success:
+                                    total_applies += 1
+                                    add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'sent', letter)
+                                else:
+                                    add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', letter, error="отправка не удалась")
+                            elif decision == "skip":
+                                add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'skipped', letter)
+                            elif decision == "regen":
+                                new_letter = letter_gen.generate(resume, vac_text, vac['title'])
+                                new_letter = alina.validate_and_improve(new_letter, resume, vac_text, vac['title'])
+                                tb_helpers.manual_decisions.pop(vac['id'], None)
+                                event.clear()
+                                if tb_helpers.telegram_loop:
+                                    asyncio.run_coroutine_threadsafe(
+                                        tb_helpers.send_vacancy_card(telegram_id, vac, new_letter, revaz_score, reason),
+                                        tb_helpers.telegram_loop
+                                    )
+                                start_wait2 = time.time()
+                                while time.time() - start_wait2 < 120:
+                                    if event.wait(timeout=1):
+                                        decision = tb_helpers.manual_decisions.get(vac['id'])
+                                        break
+                                if decision == "apply":
+                                    success = apply_to_vacancy(page, vac, new_letter, resume, ai_client)
+                                    if success:
+                                        total_applies += 1
+                                        add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'sent', new_letter)
+                                elif decision == "skip":
+                                    add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'skipped', new_letter)
+                            else:
+                                add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'skipped', letter, error="timeout")
+                            continue
+
+                        # Автоматический режим — передаём скор
+                        success = apply_to_vacancy(page, vac, letter, resume, ai_client)
+                        if success:
+                            total_applies += 1
+                            add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'sent', letter)
+                            if tb_helpers.telegram_loop:
+                                asyncio.run_coroutine_threadsafe(
+                                    tb_helpers.send_auto_apply_card(telegram_id, vac, letter, revaz_score, reason),
+                                    tb_helpers.telegram_loop
+                                )
+                        else:
+                            add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', letter, error="отправка не удалась")
+
+                    except Exception as e:
+                        logger.exception(f"Ошибка при вакансии '{vac['id']}': {e}")
+                        add_application(telegram_id, vac['id'], vac['title'], vac['url'], 'error', error=str(e))
+                        continue
+
+                    time.sleep(random.uniform(5, 10))
+
+        except Exception as e:
+            logger.exception(f"Критическая ошибка в сессии {telegram_id}: {e}")
+        finally:
+            tb_helpers.user_sessions_active[telegram_id] = False
+            tb_helpers.user_stop_flags.pop(telegram_id, None)
+            tb_helpers.user_manual_mode.pop(telegram_id, None)
+            with self._lock:
+                if telegram_id in self._sessions:
+                    del self._sessions[telegram_id]
+            logger.info(f"Сессия для {telegram_id} завершена, отправлено {total_applies}")
+
+
+session_manager = SessionManager()
+```
+
+## services/__init__.py
+
+```python
+
+```
+
+## services/alina_validator.py
+
+```python
+"""
+Алина — строгий HR, который не прощает воды
+"""
+from core.ai_client import get_ai_client
+from core.prompts import ALINA_VALIDATE_PROMPT, ALINA_IMPROVE_PROMPT
+from core.logger import logger
+
+class AlinaValidator:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def validate_and_improve(self, letter: str, resume: str, vac_text: str, title: str) -> str:
+        # Быстрая проверка на запрещёнку
+        forbidden = ['уважаемый', 'с уважением', 'буду рад', 'желаю успехов',
+                     'меня заинтересовала', 'прошу рассмотреть', 'здравствуйте', 'добрый день']
+        letter_lower = letter.lower()
+        if any(word in letter_lower for word in forbidden):
+            return self._force_improve(letter, resume, title,
+                                       "Убрать все запрещённые слова, подпись, писать от мужского лица, сразу с сути.")
+        
+        # Проверка на женский род
+        female_indicators = ['работала', 'координировала', 'внедряла', 'сократила', 'занималась', 'была', 'стала']
+        if any(word in letter_lower for word in female_indicators):
+            return self._force_improve(letter, resume, title,
+                                       "Писать от МУЖСКОГО лица (работал, координировал, внедрил).")
+
+        # Проверка на наличие цифр/фактов
+        if not any(char.isdigit() for char in letter) and not any(w in letter_lower for w in ['процент', 'клиент', 'проект', 'сократил', 'увеличил']):
+            return self._force_improve(letter, resume, title,
+                                       "Добавить конкретику: цифры, результаты, факты из резюме. Без воды.")
+        
+        # Проверка длины
+        words = len(letter.split())
+        if words < 20 or words > 100:
+            return self._force_improve(letter, resume, title,
+                                       f"Сделать объём 30-80 слов (сейчас {words}). Убрать воду или добавить конкретики.")
+        
+        # Полная проверка AI
+        prompt = ALINA_VALIDATE_PROMPT.format(letter=letter, vacancy_title=title)
+        verdict = self.ai.generate(prompt, max_tokens=200)
+        if "SEND" in verdict.upper() and "IMPROVE" not in verdict.upper():
+            return letter
+        
+        return self._force_improve(letter, resume, title, verdict)
+    
+    def _force_improve(self, letter: str, resume: str, title: str, problems: str) -> str:
+        improve_prompt = ALINA_IMPROVE_PROMPT.format(
+            original_letter=letter,
+            problems=problems,
+            resume=resume,
+            vacancy_title=title
+        )
+        improved = self.ai.generate(improve_prompt, max_tokens=500)
+        logger.info("Алина жёстко улучшила письмо")
+        return improved
+```
+
+## services/applier.py
+
+```python
+"""
+Отправка откликов на HH с обработкой тестовых вопросов (улучшенная)
+"""
+import re
+import time
+from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
+from core.logger import logger
+from core.prompts import TEST_ANSWER_PROMPT
+
+
+def apply_to_vacancy(page: Page, vacancy: dict, cover_letter: str, resume: str, ai_client) -> bool:
+    logger.info(f"Открываю вакансию: {vacancy['title'][:50]}...")
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            page.goto(vacancy['url'], timeout=60000)
+            page.wait_for_load_state('domcontentloaded')
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.warning(f"Не смог загрузить вакансию после {max_retries} попыток: {e}")
+                return False
+            logger.debug(f"Повторная загрузка страницы (попытка {attempt + 2})...")
+            time.sleep(5)
+    
+    time.sleep(3)
+    
+    btn = None
+    selectors = [
+        'a[data-qa="vacancy-response-link-top"]',
+        'a[data-qa="vacancy-response-link"]',
+        'button[data-qa="vacancy-response-button"]',
+        'button:has-text("Откликнуться")',
+        'button:has-text("Отклик")',
+        'a:has-text("Откликнуться")',
+        'span:has-text("Откликнуться")'
+    ]
+    for sel in selectors:
+        try:
+            btn = page.wait_for_selector(sel, timeout=5000)
+            if btn:
+                logger.debug(f"Найдена кнопка отклика: {sel}")
+                break
+        except PlaywrightTimeoutError:
+            continue
+    
+    if not btn:
+        logger.warning("Кнопка 'Откликнуться' не найдена")
+        return False
+    
+    try:
+        btn.scroll_into_view_if_needed()
+        btn.click()
+        logger.debug("Кнопка отклика нажата")
+        time.sleep(5)   # увеличенная пауза
+    except Exception as e:
+        logger.warning(f"Не удалось нажать кнопку: {e}")
+        return False
+    
+    # Ждем появления модального окна
+    try:
+        page.wait_for_selector('div[data-qa="vacancy-response-popup"]', timeout=7000)
+        logger.debug("Модальное окно появилось")
+    except PlaywrightTimeoutError:
+        logger.warning("Модальное окно не появилось, продолжаем...")
+    
+    try:
+        add_letter_btn = page.query_selector('button:has-text("Добавить сопроводительное")')
+        if add_letter_btn:
+            add_letter_btn.click()
+            logger.debug("Нажата кнопка 'Добавить сопроводительное'")
+            time.sleep(2)
+    except Exception:
+        pass
+
+    input_fields = page.query_selector_all('input[type="text"], input[type="textarea"], textarea')
+    for field in input_fields:
+        try:
+            placeholder = field.get_attribute('placeholder') or ''
+            label = field.get_attribute('aria-label') or ''
+            name = field.get_attribute('name') or ''
+            
+            current_value = field.input_value() if field.evaluate('el => el.value') else ''
+            if current_value:
+                continue
+            
+            combined = (placeholder + label + name).lower()
+            question_keywords = ['почему', 'тест', 'задание', 'вопрос', 'ответ', 'why', 'test', 'задача']
+            if any(kw in combined for kw in question_keywords):
+                prompt = TEST_ANSWER_PROMPT.format(
+                    question=placeholder or label or "Почему вы хотите работать у нас?",
+                    resume=resume
+                )
+                answer = ai_client.generate(prompt, max_tokens=150)
+                field.fill(answer)
+                logger.debug(f"Заполнен тестовый вопрос: {placeholder[:30]}...")
+                time.sleep(1)
+        except Exception as e:
+            logger.debug(f"Не удалось обработать поле вопроса: {e}")
+            continue
+
+    textarea = None
+    textarea_selectors = [
+        'textarea[data-qa="vacancy-response-popup-form-letter-input"]',
+        'textarea[data-qa="vacancy-response-letter"]',
+        'div[data-qa="vacancy-response-letter"] textarea',
+        'form[action*="vacancy_response"] textarea',
+        'textarea'
+    ]
+    for sel in textarea_selectors:
+        try:
+            textarea = page.wait_for_selector(sel, timeout=5000)
+            if textarea:
+                logger.debug(f"Найдено поле письма: {sel}")
+                break
+        except PlaywrightTimeoutError:
+            continue
+    
+    if textarea:
+        try:
+            textarea.scroll_into_view_if_needed()
+            textarea.fill(cover_letter)
+            logger.debug("Письмо вставлено")
+            time.sleep(2)
+        except Exception as e:
+            logger.warning(f"Не удалось заполнить поле письма: {e}")
+    else:
+        logger.info("Поле для письма не найдено (возможно, не требуется)")
+    
+    submit = None
+    submit_selectors = [
+        'button[data-qa="vacancy-response-submit-popup"]',
+        'button:has-text("Отправить")',
+        'button:has-text("Откликнуться")',
+        'form[action*="vacancy_response"] button[type="submit"]',
+        'button[data-qa="vacancy-response-submit"]'
+    ]
+    for sel in submit_selectors:
+        try:
+            submit = page.wait_for_selector(sel, timeout=5000)
+            if submit:
+                logger.debug(f"Найдена кнопка отправки: {sel}")
+                break
+        except PlaywrightTimeoutError:
+            continue
+    
+    if submit:
+        try:
+            submit.scroll_into_view_if_needed()
+            submit.click()
+            logger.debug("Кнопка отправки нажата")
+            time.sleep(4)
+            
+            try:
+                page.wait_for_selector('button[data-qa="vacancy-response-submit-popup"]', state='detached', timeout=10000)
+                logger.info("✅ Отклик отправлен (модальное окно закрылось)")
+                return True
+            except PlaywrightTimeoutError:
+                success_msg = page.query_selector('div[data-qa="vacancy-response-success"]')
+                if success_msg:
+                    logger.info("✅ Отклик отправлен (сообщение об успехе)")
+                    return True
+                error_msg = page.query_selector('div[data-qa="vacancy-response-error"]')
+                if error_msg:
+                    logger.error(f"Ошибка отправки: {error_msg.inner_text()}")
+                    return False
+                if not page.query_selector('button[data-qa="vacancy-response-submit-popup"]'):
+                    logger.info("✅ Отклик отправлен (кнопка отправки исчезла)")
+                    return True
+                logger.warning("⚠️ Не удалось подтвердить отправку, считаем неудачей")
+                return False
+        except Exception as e:
+            logger.warning(f"Ошибка при отправке: {e}")
+            return False
+    else:
+        logger.warning("Кнопка 'Отправить' не найдена")
+        return False
+```
+
+## services/file_parser.py
+
+```python
+"""
+Извлечение текста из PDF, DOCX, TXT
+"""
+import io
+from pathlib import Path
+from typing import Optional
+import fitz  # PyMuPDF
+from docx import Document
+from core.logger import logger
+
+def extract_text_from_pdf(file_bytes: bytes) -> Optional[str]:
+    """Извлекает текст из PDF-файла"""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+        return text.strip() if text else None
+    except Exception as e:
+        logger.error(f"Ошибка извлечения текста из PDF: {e}")
+        return None
+
+def extract_text_from_docx(file_bytes: bytes) -> Optional[str]:
+    """Извлекает текст из DOCX-файла"""
+    try:
+        doc = Document(io.BytesIO(file_bytes))
+        text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+        return text.strip() if text else None
+    except Exception as e:
+        logger.error(f"Ошибка извлечения текста из DOCX: {e}")
+        return None
+
+def extract_text_from_txt(file_bytes: bytes) -> Optional[str]:
+    """Извлекает текст из TXT-файла"""
+    try:
+        return file_bytes.decode('utf-8').strip()
+    except UnicodeDecodeError:
+        try:
+            return file_bytes.decode('cp1251').strip()
+        except Exception as e:
+            logger.error(f"Ошибка декодирования TXT: {e}")
+            return None
+
+def extract_text_from_file(file_bytes: bytes, file_name: str) -> Optional[str]:
+    """Определяет тип файла по расширению и извлекает текст"""
+    ext = Path(file_name).suffix.lower()
+    if ext == '.pdf':
+        return extract_text_from_pdf(file_bytes)
+    elif ext == '.docx':
+        return extract_text_from_docx(file_bytes)
+    elif ext == '.txt':
+        return extract_text_from_txt(file_bytes)
+    else:
+        logger.warning(f"Неподдерживаемый формат файла: {ext}")
+        return None
+        
+```
+
+## services/hh_auth.py
+
+```python
+"""
+Авторизация на hh.ru через Playwright
+"""
+import time
+from playwright.sync_api import Page
+from core.logger import logger
+
+
+def login_to_hh(page: Page, phone: str, sms_code_getter) -> bool:
+    try:
+        logger.info("Открываю страницу авторизации hh.ru...")
+        page.goto("https://hh.ru/account/login", timeout=30000)
+        page.wait_for_load_state('domcontentloaded')
+        time.sleep(3)
+
+        # Шаг 1 — кликаем "Я ищу работу"
+        logger.info("Кликаю 'Я ищу работу'...")
+        try:
+            page.wait_for_selector('text=Я ищу работу', timeout=10000)
+            page.click('text=Я ищу работу')
+            logger.info("Карточка выбрана!")
+            time.sleep(2)
+        except Exception as e:
+            logger.warning(f"Кнопка 'Я ищу работу' не найдена: {e}")
+
+        # Шаг 1.5 — нажимаем кнопку "Войти"
+        logger.info("Нажимаю кнопку 'Войти'...")
+        try:
+            page.wait_for_selector('button:has-text("Войти")', timeout=5000)
+            page.click('button:has-text("Войти")')
+            logger.info("Нажал 'Войти', жду форму с телефоном...")
+            time.sleep(3)
+            page.wait_for_load_state('domcontentloaded')
+            time.sleep(2)
+        except Exception as e:
+            logger.warning(f"Кнопка 'Войти' не найдена: {e}")
+
+        # Шаг 2 — вводим номер телефона прямо с клавиатуры
+        # Поле уже в фокусе после перехода на страницу
+        logger.info(f"Ввожу номер телефона: {phone}")
+        time.sleep(1)
+        page.keyboard.type(phone, delay=100)
+        logger.info(f"✅ Номер введён: {phone}")
+        time.sleep(0.5)
+
+        # Нажимаем Enter
+        page.keyboard.press('Enter')
+        logger.info("Нажал Enter, жду SMS...")
+        time.sleep(3)
+
+        # Шаг 3 — ждём SMS код от пользователя
+        logger.info("Жду SMS код от пользователя...")
+        sms_code = sms_code_getter()
+
+        if not sms_code:
+            logger.error("SMS код не получен")
+            return False
+
+        # Шаг 4 — вводим SMS код прямо с клавиатуры
+        logger.info(f"Ввожу SMS код: {sms_code}")
+        time.sleep(1)
+        page.keyboard.type(sms_code, delay=100)
+        logger.info(f"✅ Код введён: {sms_code}")
+        time.sleep(0.5)
+
+        # Нажимаем Enter для подтверждения
+        page.keyboard.press('Enter')
+        time.sleep(3)
+
+        # Шаг 5 — проверяем авторизацию
+        current_url = page.url
+        if "login" not in current_url:
+            logger.info("✅ Авторизация успешна!")
+            return True
+        else:
+            page.screenshot(path="auth_debug_final.png")
+            logger.error(f"❌ Авторизация не прошла, URL: {current_url}")
+            return False
+
+    except Exception as e:
+        logger.exception(f"Ошибка при авторизации: {e}")
+        return False
+```
+
+## services/hh_parser.py
+
+```python
+"""
+Парсинг вакансий с HH.ru с пагинацией, учётом истории и статусными сообщениями
+"""
+import re
+import time
+import asyncio
+from playwright.sync_api import Page
+from core.logger import logger
+from storage.history_repository import get_applied_ids
+import bot.utils.helpers as tb
+
+
+def collect_vacancies_from_url(page: Page, url: str, telegram_id: int, chat_id: int, max_pages: int = 3) -> list:
+    """
+    Собирает вакансии с нескольких страниц поиска.
+    Возвращает список словарей с id, title, url, company, salary, area.
+    """
+    all_vacancies = []
+    seen_ids = set()
+    applied_ids = get_applied_ids(telegram_id)
+
+    for page_num in range(1, max_pages + 1):
+        if page_num == 1:
+            page_url = url
+        else:
+            if '?' in url:
+                page_url = f"{url}&page={page_num}"
+            else:
+                page_url = f"{url}?page={page_num}"
+
+        logger.info(f"Загружаю страницу поиска {page_num}: {page_url[:60]}...")
+
+        if tb.telegram_loop and chat_id:
+            asyncio.run_coroutine_threadsafe(
+                tb.telegram_bot.send_message(chat_id, f"🔍 Собираю вакансии (страница {page_num})…"),
+                tb.telegram_loop
+            )
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                page.goto(page_url, timeout=90000)
+                page.wait_for_load_state('domcontentloaded')
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.warning(f"Не смог загрузить страницу {page_num} после {max_retries} попыток: {e}")
+                    return all_vacancies
+                logger.debug(f"Повторная загрузка страницы {page_num} (попытка {attempt+2})...")
+                time.sleep(5)
+
+        time.sleep(3)
+
+        for _ in range(3):
+            page.keyboard.press("PageDown")
+            time.sleep(1)
+
+        vacancy_items = page.query_selector_all('div[data-qa="vacancy-serp__vacancy"]')
+        if not vacancy_items:
+            vacancy_items = page.query_selector_all('div.vacancy-serp-item__layout')
+
+        page_vacancies = 0
+
+        for item in vacancy_items:
+            try:
+                title_el = item.query_selector('a[data-qa="serp-item__title"]')
+                if not title_el:
+                    title_el = item.query_selector('a[href*="/vacancy/"]')
+                if not title_el:
+                    continue
+
+                href = title_el.get_attribute('href')
+                if not href:
+                    continue
+
+                match = re.search(r'/vacancy/(\d+)', href)
+                if not match:
+                    continue
+
+                vac_id = match.group(1)
+                if vac_id in applied_ids or vac_id in seen_ids:
+                    continue
+
+                title = title_el.inner_text().strip()
+                if not title:
+                    continue
+
+                # Компания
+                company = 'Не указана'
+                company_el = item.query_selector('a[data-qa="vacancy-serp__vacancy-employer"]')
+                if not company_el:
+                    company_el = item.query_selector('span[data-qa="vacancy-serp__vacancy-employer"]')
+                if company_el:
+                    company = company_el.inner_text().strip() or 'Не указана'
+
+                # Зарплата
+                salary = 'Не указана'
+                salary_selectors = [
+                    'span[data-qa="vacancy-serp__vacancy-compensation"]',
+                    'span[data-qa="vacancy-serp__vacancy-compensation-range"]',
+                    'div[data-qa="vacancy-serp__vacancy-compensation"]',
+                ]
+                for sel in salary_selectors:
+                    salary_el = item.query_selector(sel)
+                    if salary_el:
+                        text = salary_el.inner_text().strip()
+                        if text:
+                            salary = text
+                            break
+
+                # Город
+                area = 'Не указан'
+                area_el = item.query_selector('span[data-qa="vacancy-serp__vacancy-address"]')
+                if not area_el:
+                    area_el = item.query_selector('div[data-qa="vacancy-serp__vacancy-address"]')
+                if area_el:
+                    area = area_el.inner_text().strip().split(',')[0] or 'Не указан'
+
+                seen_ids.add(vac_id)
+                all_vacancies.append({
+                    'id': vac_id,
+                    'title': title,
+                    'url': f"https://hh.ru/vacancy/{vac_id}",
+                    'company': company,
+                    'salary': salary,
+                    'area': area,
+                })
+                page_vacancies += 1
+
+            except Exception as e:
+                logger.debug(f"Ошибка парсинга карточки: {e}")
+                continue
+
+        logger.info(f"Страница {page_num}: найдено новых вакансий: {page_vacancies}")
+
+        next_button = page.query_selector('a[data-qa="pager-next"]')
+        if not next_button:
+            logger.info("Достигнут конец пагинации")
+            break
+
+        time.sleep(3)
+
+    logger.info(f"Всего найдено вакансий: {len(all_vacancies)}")
+    return all_vacancies
+
+
+def get_vacancy_description(page: Page, url: str) -> tuple:
+    """
+    Загружает страницу вакансии и возвращает (описание, зарплата, компания, город).
+    """
+    try:
+        page.goto(url, timeout=60000)
+        page.wait_for_load_state('domcontentloaded')
+        time.sleep(2)
+
+        # Описание
+        description = ""
+        desc_el = page.query_selector('div[data-qa="vacancy-description"]')
+        if desc_el:
+            description = desc_el.inner_text()
+
+        # Зарплата через JS — склеивает все фрагменты текста
+        salary = 'Не указана'
+        salary_el = page.query_selector('span[data-qa="vacancy-salary-compensation-type-net"]')
+        if not salary_el:
+            salary_el = page.query_selector('span[data-qa="vacancy-salary-compensation-type-gross"]')
+        if salary_el:
+            text = page.evaluate('el => el.innerText', salary_el)
+            text = text.strip().replace('\u202f', ' ').replace('\xa0', ' ')
+            if text:
+                salary = text
+                logger.info(f"💰 Зарплата: {salary}")
+
+        if salary == 'Не указана':
+            logger.info(f"💰 Зарплата не найдена на {url}")
+
+        # Компания
+        company = 'Не указана'
+        company_el = page.query_selector('a[data-qa="vacancy-company-name"]')
+        if company_el:
+            company = company_el.inner_text().strip()
+
+        # Город
+        area = 'Не указан'
+        area_el = page.query_selector('p[data-qa="vacancy-view-location"]')
+        if not area_el:
+            area_el = page.query_selector('span[data-qa="vacancy-view-raw-address"]')
+        if area_el:
+            area = area_el.inner_text().strip().split(',')[0]
+
+        logger.info(f"📊 Данные: зп={salary}, компания={company}, город={area}")
+        return description, salary, company, area
+
+    except Exception as e:
+        logger.warning(f"Не удалось получить данные вакансии {url}: {e}")
+    return "", 'Не указана', 'Не указана', 'Не указан'
+```
+
+## services/letter_generator.py
+
+```python
+"""
+Генерация сопроводительных писем (без валидаторов)
+"""
+import re
+from core.ai_client import get_ai_client
+from core.prompts import COVER_LETTER_STRUCTURED
+from core.logger import logger, log_ai
+
+class LetterGenerator:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def _clean_letter(self, letter: str) -> str:
+        """Вырезает любой мусор: валидаторские блоки, женский род, подписи"""
+        lines = letter.split('\n')
+        cleaned = []
+        for line in lines:
+            low = line.lower()
+            # Пропускаем строки с мусором
+            if any(x in low for x in [
+                'уважаемый', 'с уважением', 'буду рад', 'желаю успехов',
+                'меня заинтересовала', 'прошу рассмотреть', 'здравствуйте',
+                'благодарю за внимание', 'добрый день',
+                'основные правки', 'исправленное письмо', 'ошибки:',
+                'согласование по роду', 'лексика и стиль', 'грамматика',
+                'координировала', 'работала', 'готова', 'занималась'
+            ]):
+                continue
+            cleaned.append(line)
+        letter = '\n'.join(cleaned).strip()
+        
+        # Убираем префиксы от валидаторов
+        letter = re.sub(r'(?i)^.*исправленное письмо:\s*', '', letter)
+        letter = re.sub(r'(?i)^.*основные правки:.*$', '', letter, flags=re.MULTILINE)
+        letter = re.sub(r'(?i)\s*с уважением,?\s*', '', letter)
+        letter = re.sub(r'(?i)\s*благодарю за внимание,?\s*', '', letter)
+        letter = re.sub(r'\n[А-Я][а-я]+(?:\s+[А-Я][а-я]+)?\s*$', '', letter)
+        
+        if len(letter.split()) < 15:
+            letter = "Вижу, нужен специалист с опытом в вашей сфере. Мой опыт соответствует требованиям. Готов обсудить детали."
+        return letter.strip()
+    
+    def generate(self, resume: str, vac_text: str, title: str) -> str:
+        prompt = COVER_LETTER_STRUCTURED.format(
+            resume=resume,
+            title=title,
+            description=vac_text
+        )
+        try:
+            letter = self.ai.generate(prompt, max_tokens=800)
+            log_ai("COVER_LETTER_STRUCTURED", prompt[:200], letter)
+        except Exception as e:
+            logger.error(f"Ошибка генерации: {e}")
+            return "Вижу, нужен специалист с опытом в вашей сфере. Мой опыт соответствует требованиям. Готов обсудить детали."
+        
+        letter = self._clean_letter(letter)
+        return letter
+```
+
+## services/resume_improver.py
+
+```python
+"""
+Алина — анализ и улучшение резюме (двухэтапный процесс, без выдумки)
+"""
+import re
+import json
+from typing import Dict, List
+from core.ai_client import get_ai_client
+from core.prompts import RESUME_ANALYSIS_PROMPT, RESUME_IMPROVE_PROMPT
+from core.logger import logger
+
+class ResumeImprover:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def analyze(self, resume: str) -> Dict:
+        # Шаг 1: анализ
+        analysis_prompt = RESUME_ANALYSIS_PROMPT.format(resume=resume)
+        analysis_response = self.ai.generate(analysis_prompt, max_tokens=1500)
+        logger.info(f"Алина ответила: {analysis_response[:300]}")
+        
+        result = self._parse_analysis(analysis_response)
+        result['raw_analysis'] = analysis_response  # сохраняем полный ответ
+        
+        # Генерируем улучшенное резюме только если оценка ниже 9
+        improvements = result.get('improvements', [])
+        if result.get('score', 5) < 9 and improvements:
+            improve_prompt = RESUME_IMPROVE_PROMPT.format(
+                original_resume=resume,
+                improvements='\n'.join(f"- {imp}" for imp in improvements)
+            )
+            try:
+                improved_resume = self.ai.generate(improve_prompt, max_tokens=1500)
+                result['improved_resume'] = improved_resume.strip()
+                logger.info("Алина сгенерировала улучшенное резюме")
+            except Exception as e:
+                logger.error(f"Ошибка при генерации улучшенного резюме: {e}")
+                result['improved_resume'] = None
+        else:
+            result['improved_resume'] = None
+        
+        return result
+    
+    def _parse_analysis(self, response: str) -> Dict:
+        result = {
+            'score': 5,
+            'strengths': [],
+            'weaknesses': [],
+            'keywords': [],
+            'improvements': []
+        }
+        
+        lines = response.split('\n')
+        section = None
+        json_str = ""
+        in_json = False
+        
+        for line in lines:
+            line_stripped = line.strip()
+
+            # Ищем оценку в разных форматах
+            score_match = re.search(r'(?:оценка|общая оценка|score)[:\s*#]*(\d+)\s*(?:/\s*10)?', line_stripped.lower())
+            if score_match:
+                result['score'] = min(10, max(1, int(score_match.group(1))))
+                continue
+
+            if line_stripped.startswith('СИЛЬНЫЕ СТОРОНЫ') or '**Сильные стороны' in line_stripped or '### Сильные' in line_stripped:
+                section = 'strengths'
+                continue
+            elif line_stripped.startswith('СЛАБЫЕ СТОРОНЫ') or '**Слабые стороны' in line_stripped or '### Слабые' in line_stripped or 'РЕКОМЕНДАЦИИ' in line_stripped or '### Области' in line_stripped:
+                section = 'weaknesses'
+                continue
+            elif 'КЛЮЧЕВЫЕ СЛОВА' in line_stripped.upper():
+                keywords_str = re.sub(r'.*КЛЮЧЕВЫЕ СЛОВА[^:]*:', '', line_stripped, flags=re.IGNORECASE).strip()
+                keywords_str = keywords_str.strip('[]**')
+                result['keywords'] = [kw.strip() for kw in keywords_str.split(',') if kw.strip()]
+                section = None
+            elif line_stripped.startswith('JSON_IMPROVEMENTS:'):
+                json_str = line_stripped.replace('JSON_IMPROVEMENTS:', '').strip()
+                in_json = True
+                section = None
+            elif in_json:
+                json_str += " " + line_stripped
+                if '}' in line_stripped:
+                    in_json = False
+            elif section == 'strengths':
+                # Принимаем строки с - или ** или цифры с точкой
+                clean = re.sub(r'^[-*\d.)\s]+\**', '', line_stripped).strip('*').strip()
+                if clean and len(clean) > 5:
+                    result['strengths'].append(clean)
+            elif section == 'weaknesses':
+                clean = re.sub(r'^[-*\d.)\s]+\**', '', line_stripped).strip('*').strip()
+                if clean and len(clean) > 5:
+                    result['weaknesses'].append(clean)
+
+        # Если оценка не найдена построчно — ищем по всему тексту
+        if result['score'] == 5:
+            match = re.search(r'(?:оценка|общая оценка)[:\s*]*(\d+)\s*/\s*10', response.lower())
+            if match:
+                result['score'] = min(10, max(1, int(match.group(1))))
+
+        # Парсим JSON с улучшениями
+        if json_str:
+            try:
+                match = re.search(r'\{.*\}', json_str, re.DOTALL)
+                if match:
+                    data = json.loads(match.group())
+                    result['improvements'] = data.get('improvements', [])
+            except Exception as e:
+                logger.warning(f"Не удалось распарсить JSON улучшений: {e}")
+
+        # Fallback — если сильные/слабые стороны не нашли через секции
+        if not result['strengths'] and not result['weaknesses']:
+            result['improvements'] = result['weaknesses'].copy() or [
+                "Добавить конкретные метрики и результаты",
+                "Улучшить формулировки опыта работы",
+                "Добавить ключевые слова для ATS"
+            ]
+
+        # Если improvements пустой — берём слабые стороны
+        if not result['improvements'] and result['weaknesses']:
+            result['improvements'] = result['weaknesses'][:5]
+
+        return result
+```
+
+## services/revaz_agent.py
+
+```python
+"""
+Реваз - технический скрининг вакансий
+"""
+from core.ai_client import get_ai_client
+from core.prompts import REVAZ_CHECKLIST_PROMPT, REVAZ_VERDICT_PROMPT
+from core.logger import logger
+import json
+import re
+
+class RevazAgent:
+    def __init__(self, resume: str):
+        self.ai = get_ai_client()
+        self.resume = resume if resume else "Резюме не загружено."
+        self.strict_mode = False
+
+    def _parse_json(self, text: str):
+        """Вытаскивает JSON даже если AI добавил лишний текст вокруг"""
+        try:
+            return json.loads(text)
+        except:
+            pass
+        match = re.search(r'(\[.*?\]|\{.*?\})', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except:
+                pass
+        return None
+
+    def _extract_score(self, verdict_str: str) -> int:
+        """Вытаскивает процент матча"""
+        match = re.search(r'СКОР:\s*(\d+)%?', verdict_str)
+        if match:
+            return min(100, max(1, int(match.group(1))))
+        match = re.search(r'(\d+)%', verdict_str)
+        if match:
+            return min(100, max(1, int(match.group(1))))
+        if 'PASS' in verdict_str.upper():
+            return 70
+        return 30
+
+    def _extract_reason(self, verdict_str: str) -> str:
+        """Вытаскивает причину из вердикта — несколько вариантов парсинга"""
+        # Вариант 1: ПРИЧИНА: текст
+        match = re.search(r'ПРИЧИНА:\s*(.+?)(?=\nДЕТАЛИ:|$)', verdict_str, re.DOTALL)
+        if match:
+            return match.group(1).strip()[:200]
+
+        # Вариант 2: берём строку после ВЕРДИКТА и СКОРА
+        lines = verdict_str.strip().split('\n')
+        for i, line in enumerate(lines):
+            if 'ПРИЧИНА' in line.upper():
+                # Берём текст после двоеточия на этой же строке
+                parts = line.split(':', 1)
+                if len(parts) > 1 and parts[1].strip():
+                    return parts[1].strip()[:200]
+                # Или следующую строку
+                if i + 1 < len(lines) and lines[i + 1].strip():
+                    return lines[i + 1].strip()[:200]
+
+        # Вариант 3: берём любую содержательную строку после вердикта
+        for line in lines:
+            line = line.strip()
+            if (line and
+                'ВЕРДИКТ' not in line.upper() and
+                'СКОР' not in line.upper() and
+                'ДЕТАЛИ' not in line.upper() and
+                len(line) > 20):
+                return line[:200]
+
+        return "Комментарий недоступен"
+
+    def check(self, vacancy: dict, vac_text: str) -> tuple[bool, str, int]:
+        """Возвращает (подходит, причина, скор)."""
+        if not vac_text:
+            return True, "Описание вакансии отсутствует", 50
+
+        # Формируем чек-лист
+        checklist_prompt = REVAZ_CHECKLIST_PROMPT.format(
+            vacancy_title=vacancy['title'],
+            vacancy_description=vac_text,
+            resume=self.resume
+        )
+        try:
+            checklist_str = self.ai.generate(checklist_prompt, max_tokens=500)
+            checklist = self._parse_json(checklist_str)
+            if not checklist:
+                raise ValueError("Пустой чек-лист")
+        except Exception as e:
+            logger.debug(f"Реваз не смог сформировать чек-лист: {e}")
+            return True, "Скрининг недоступен", 50
+
+        # Проверяем резюме по чек-листу
+        verdict_prompt = REVAZ_VERDICT_PROMPT.format(
+            vacancy_title=vacancy['title'],
+            vacancy_description=vac_text,
+            checklist=json.dumps(checklist, ensure_ascii=False),
+            resume=self.resume
+        )
+        try:
+            verdict_str = self.ai.generate(verdict_prompt, max_tokens=400)
+            logger.debug(f"Реваз вердикт: {verdict_str[:300]}")
+        except Exception as e:
+            logger.debug(f"Реваз: ошибка вердикта: {e}")
+            return True, "Скрининг недоступен", 50
+
+        score = self._extract_score(verdict_str)
+        passed = 'PASS' in verdict_str.upper()
+        reason = self._extract_reason(verdict_str)
+
+        if passed:
+            logger.debug(f"✅ Реваз одобрил ({score}%): {reason[:80]}")
+        else:
+            logger.warning(f"⚠️ Реваз сомневается ({score}%): {reason[:80]}")
+            passed = True  # в нестрогом режиме всё равно показываем
+
+        return passed, reason, score
+```
+
+## services/svetlana_validator.py
+
+```python
+"""
+Светлана Викторовна — проверка русского языка
+"""
+from core.ai_client import get_ai_client
+from core.prompts import SVETLANA_VALIDATE_PROMPT
+from core.logger import logger
+
+class SvetlanaValidator:
+    def __init__(self):
+        self.ai = get_ai_client()
+    
+    def validate_and_fix(self, letter: str) -> str:
+        """Проверяет письмо и возвращает исправленную версию"""
+        prompt = SVETLANA_VALIDATE_PROMPT.format(letter=letter)
+        try:
+            response = self.ai.generate(prompt, max_tokens=600)
+            
+            if "ИСПРАВЛЕННОЕ ПИСЬМО:" in response:
+                parts = response.split("ИСПРАВЛЕННОЕ ПИСЬМО:")
+                if len(parts) > 1:
+                    fixed = parts[1].strip()
+                    logger.info("Светлана Викторовна внесла правки")
+                    return fixed
+            
+            if "ОШИБОК НЕТ" in response.upper():
+                logger.info("Светлана Викторовна: ошибок нет")
+            else:
+                logger.warning("Светлана Викторовна: не удалось распарсить ответ")
+            
+            return letter
+        except Exception as e:
+            logger.error(f"Ошибка при проверке Светланой Викторовной: {e}")
+            return letter
+```
+
+## storage/__init__.py
+
+```python
+
+```
+
+## storage/database.py
+
+```python
+"""
+Модуль для работы с базой данных SQLite (синхронный + асинхронный)
+Поддержка нескольких резюме и активного резюме.
+"""
+import sqlite3
+import json
+import aiosqlite
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict, Any, List
+from config.settings import DATA_DIR
+from core.logger import logger
+
+DB_PATH = DATA_DIR / "hh_bot.db"
+
+def init_db():
+    """Создаёт таблицы, если их нет, и обновляет схему"""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                telegram_id INTEGER PRIMARY KEY,
+                resume_text TEXT,
+                settings TEXT,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP,
+                resumes TEXT,
+                active_resume_index INTEGER DEFAULT 0
+            )
+        ''')
+        # Добавляем новые колонки для старых баз
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN resumes TEXT")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN active_resume_index INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                vacancy_id TEXT NOT NULL,
+                title TEXT,
+                url TEXT,
+                status TEXT,
+                letter TEXT,
+                error TEXT,
+                created_at TIMESTAMP,
+                FOREIGN KEY (telegram_id) REFERENCES users (telegram_id)
+            )
+        ''')
+        conn.commit()
+    logger.info(f"База данных инициализирована: {DB_PATH}")
+
+init_db()
+
+# ============================================
+# СИНХРОННЫЙ КЛАСС
+# ============================================
+class SyncDatabase:
+    @staticmethod
+    def get_user(telegram_id: int) -> Optional[Dict[str, Any]]:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+            row = cursor.fetchone()
+            if row:
+                user = dict(row)
+                if user.get('settings'):
+                    user['settings'] = json.loads(user['settings'])
+                if user.get('resumes'):
+                    user['resumes'] = json.loads(user['resumes'])
+                else:
+                    # Миграция старых данных: одиночное резюме -> список
+                    if user.get('resume_text'):
+                        user['resumes'] = [{"name": "Основное", "text": user['resume_text']}]
+                        user['active_resume_index'] = 0
+                    else:
+                        user['resumes'] = []
+                        user['active_resume_index'] = 0
+                return user
+            return None
+
+    @staticmethod
+    def save_user(telegram_id: int, resume_text: str = None, settings: Dict = None,
+                  resumes: List[Dict] = None, active_resume_index: int = None) -> None:
+        now = datetime.now().isoformat()
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT telegram_id FROM users WHERE telegram_id = ?", (telegram_id,))
+            exists = cursor.fetchone()
+            if exists:
+                updates = []
+                params = []
+                if resume_text is not None:
+                    updates.append("resume_text = ?")
+                    params.append(resume_text)
+                if settings is not None:
+                    updates.append("settings = ?")
+                    params.append(json.dumps(settings, ensure_ascii=False))
+                if resumes is not None:
+                    updates.append("resumes = ?")
+                    params.append(json.dumps(resumes, ensure_ascii=False))
+                if active_resume_index is not None:
+                    updates.append("active_resume_index = ?")
+                    params.append(active_resume_index)
+                if updates:
+                    updates.append("updated_at = ?")
+                    params.append(now)
+                    params.append(telegram_id)
+                    cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE telegram_id = ?", params)
+            else:
+                # Для нового пользователя
+                resumes_json = json.dumps(resumes, ensure_ascii=False) if resumes else "[]"
+                cursor.execute(
+                    """INSERT INTO users (telegram_id, resume_text, settings, created_at, updated_at, resumes, active_resume_index)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (telegram_id, resume_text or "", json.dumps(settings or {}, ensure_ascii=False), now, now,
+                     resumes_json, active_resume_index or 0)
+                )
+            conn.commit()
+
+    @staticmethod
+    def get_active_resume(telegram_id: int) -> Optional[str]:
+        user = SyncDatabase.get_user(telegram_id)
+        if not user:
+            return None
+        resumes = user.get('resumes', [])
+        idx = user.get('active_resume_index', 0)
+        if 0 <= idx < len(resumes):
+            return resumes[idx].get('text', '')
+        return None
+
+    @staticmethod
+    def add_application(telegram_id: int, vacancy_id: str, title: str, url: str, status: str, letter: str = "", error: str = None):
+        now = datetime.now().isoformat()
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO applications (telegram_id, vacancy_id, title, url, status, letter, error, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (telegram_id, vacancy_id, title, url, status, letter, error, now)
+            )
+            conn.commit()
+
+    @staticmethod
+    def get_applied_ids(telegram_id: int) -> set:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT vacancy_id FROM applications WHERE telegram_id = ? AND status = 'sent'", (telegram_id,))
+            return {row[0] for row in cursor.fetchall()}
+
+    @staticmethod
+    def get_stats(telegram_id: int) -> Dict[str, int]:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM applications WHERE telegram_id = ?", (telegram_id,))
+            total = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT status, COUNT(*) FROM applications WHERE telegram_id = ? GROUP BY status",
+                (telegram_id,)
+            )
+            stats = {row[0]: row[1] for row in cursor.fetchall()}
+            today = datetime.now().date().isoformat()
+            cursor.execute(
+                "SELECT COUNT(*) FROM applications WHERE telegram_id = ? AND status = 'sent' AND date(created_at) = ?",
+                (telegram_id, today)
+            )
+            sent_today = cursor.fetchone()[0]
+            return {
+                'total': total,
+                'sent': stats.get('sent', 0),
+                'revaz_skip': stats.get('revaz_skip', 0),
+                'error': stats.get('error', 0),
+                'ai_error': stats.get('ai_error', 0),
+                'sent_today': sent_today
+            }
+
+    @staticmethod
+    def get_recent_applications(telegram_id: int, limit: int = 10, status: str = None) -> List[Dict]:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            query = "SELECT * FROM applications WHERE telegram_id = ?"
+            params = [telegram_id]
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+# ============================================
+# АСИНХРОННЫЙ КЛАСС
+# ============================================
+class AsyncDatabase:
+    @staticmethod
+    async def get_user(telegram_id: int) -> Optional[Dict[str, Any]]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    user = dict(row)
+                    if user.get('settings'):
+                        user['settings'] = json.loads(user['settings'])
+                    if user.get('resumes'):
+                        user['resumes'] = json.loads(user['resumes'])
+                    else:
+                        if user.get('resume_text'):
+                            user['resumes'] = [{"name": "Основное", "text": user['resume_text']}]
+                            user['active_resume_index'] = 0
+                        else:
+                            user['resumes'] = []
+                            user['active_resume_index'] = 0
+                    return user
+                return None
+
+    @staticmethod
+    async def save_user(telegram_id: int, resume_text: str = None, settings: Dict = None,
+                        resumes: List[Dict] = None, active_resume_index: int = None) -> None:
+        now = datetime.now().isoformat()
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT telegram_id FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+                exists = await cursor.fetchone()
+            if exists:
+                updates = []
+                params = []
+                if resume_text is not None:
+                    updates.append("resume_text = ?")
+                    params.append(resume_text)
+                if settings is not None:
+                    updates.append("settings = ?")
+                    params.append(json.dumps(settings, ensure_ascii=False))
+                if resumes is not None:
+                    updates.append("resumes = ?")
+                    params.append(json.dumps(resumes, ensure_ascii=False))
+                if active_resume_index is not None:
+                    updates.append("active_resume_index = ?")
+                    params.append(active_resume_index)
+                if updates:
+                    updates.append("updated_at = ?")
+                    params.append(now)
+                    params.append(telegram_id)
+                    await db.execute(f"UPDATE users SET {', '.join(updates)} WHERE telegram_id = ?", params)
+            else:
+                resumes_json = json.dumps(resumes, ensure_ascii=False) if resumes else "[]"
+                await db.execute(
+                    """INSERT INTO users (telegram_id, resume_text, settings, created_at, updated_at, resumes, active_resume_index)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (telegram_id, resume_text or "", json.dumps(settings or {}, ensure_ascii=False), now, now,
+                     resumes_json, active_resume_index or 0)
+                )
+            await db.commit()
+
+    @staticmethod
+    async def get_active_resume(telegram_id: int) -> Optional[str]:
+        user = await AsyncDatabase.get_user(telegram_id)
+        if not user:
+            return None
+        resumes = user.get('resumes', [])
+        idx = user.get('active_resume_index', 0)
+        if 0 <= idx < len(resumes):
+            return resumes[idx].get('text', '')
+        return None
+
+    @staticmethod
+    async def add_application(telegram_id: int, vacancy_id: str, title: str, url: str, status: str, letter: str = "", error: str = None):
+        now = datetime.now().isoformat()
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                """INSERT INTO applications (telegram_id, vacancy_id, title, url, status, letter, error, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (telegram_id, vacancy_id, title, url, status, letter, error, now)
+            )
+            await db.commit()
+
+    @staticmethod
+    async def get_applied_ids(telegram_id: int) -> set:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT vacancy_id FROM applications WHERE telegram_id = ? AND status = 'sent'", (telegram_id,)) as cursor:
+                rows = await cursor.fetchall()
+                return {row[0] for row in rows}
+
+    @staticmethod
+    async def get_stats(telegram_id: int) -> Dict[str, int]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT COUNT(*) FROM applications WHERE telegram_id = ?", (telegram_id,)) as cursor:
+                total = (await cursor.fetchone())[0]
+            async with db.execute(
+                "SELECT status, COUNT(*) FROM applications WHERE telegram_id = ? GROUP BY status",
+                (telegram_id,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                stats = {row[0]: row[1] for row in rows}
+            today = datetime.now().date().isoformat()
+            async with db.execute(
+                "SELECT COUNT(*) FROM applications WHERE telegram_id = ? AND status = 'sent' AND date(created_at) = ?",
+                (telegram_id, today)
+            ) as cursor:
+                sent_today = (await cursor.fetchone())[0]
+            return {
+                'total': total,
+                'sent': stats.get('sent', 0),
+                'revaz_skip': stats.get('revaz_skip', 0),
+                'error': stats.get('error', 0),
+                'ai_error': stats.get('ai_error', 0),
+                'sent_today': sent_today
+            }
+
+    @staticmethod
+    async def get_recent_applications(telegram_id: int, limit: int = 10, status: str = None) -> List[Dict]:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            query = "SELECT * FROM applications WHERE telegram_id = ?"
+            params = [telegram_id]
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+            async with db.execute(query, params) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+```
+
+## storage/history_repository.py
+
+```python
+"""
+Хранилище истории откликов (работа с БД)
+"""
+from storage.database import SyncDatabase
+
+def add_application(telegram_id: int, vacancy_id: str, title: str, url: str, status: str, letter: str = "", error: str = None):
+    SyncDatabase.add_application(telegram_id, vacancy_id, title, url, status, letter, error)
+
+def get_applied_ids(telegram_id: int) -> set:
+    return SyncDatabase.get_applied_ids(telegram_id)
+
+def get_stats(telegram_id: int):
+    return SyncDatabase.get_stats(telegram_id)
+```

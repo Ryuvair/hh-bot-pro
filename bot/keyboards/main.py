@@ -1,15 +1,13 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
-def get_main_keyboard(start_stop_text: str, mode_text: str) -> InlineKeyboardMarkup:
+def get_main_keyboard(start_stop_text: str, mode_text: str) -> ReplyKeyboardMarkup:
     keyboard = [
-        [InlineKeyboardButton(start_stop_text, callback_data="toggle_session")],
-        [InlineKeyboardButton(f"🔄 Режим: {mode_text}", callback_data="toggle_mode")],
-        [InlineKeyboardButton("📊 Статистика", callback_data="stats")],
-        [InlineKeyboardButton("📄 Резюме", callback_data="resume_menu")],
-        [InlineKeyboardButton("📌 Мои должности", callback_data="jobs_menu")],
-        [InlineKeyboardButton("🔗 Запустить отклики по ссылке", callback_data="start_by_url")],
+        [KeyboardButton(start_stop_text), KeyboardButton(f"🔄 Режим")],
+        [KeyboardButton("📊 Статистика"), KeyboardButton("📄 Резюме")],
+        [KeyboardButton("📌 Должности"), KeyboardButton("🔗 По ссылке")],
+        [KeyboardButton("🔐 Авторизация hh.ru")],
     ]
-    return InlineKeyboardMarkup(keyboard)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 def get_resume_menu_keyboard() -> InlineKeyboardMarkup:
     keyboard = [
@@ -21,12 +19,14 @@ def get_resume_menu_keyboard() -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_analysis_keyboard(has_improved: bool = False) -> InlineKeyboardMarkup:
+def get_analysis_keyboard(has_improved: bool = False, score: int = 5) -> InlineKeyboardMarkup:
     keyboard = []
     if has_improved:
-        keyboard.append([InlineKeyboardButton("👀 Посмотреть улучшенное", callback_data="view_improved")])
+        keyboard.append([InlineKeyboardButton("👀 Посмотреть улучшенное резюме", callback_data="view_improved")])
         keyboard.append([InlineKeyboardButton("✨ Применить улучшенное", callback_data="apply_improved_onboard")])
-    keyboard.append([InlineKeyboardButton("⏭️ Оставить как есть", callback_data="skip_analysis")])
+    elif score < 9:
+        keyboard.append([InlineKeyboardButton("✨ Улучшить резюме с Алиной", callback_data="analyze_resume")])
+    keyboard.append([InlineKeyboardButton("⏭️ Оставить как есть и продолжить", callback_data="skip_analysis")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_settings_keyboard() -> InlineKeyboardMarkup:
@@ -38,8 +38,8 @@ def get_settings_keyboard() -> InlineKeyboardMarkup:
 
 def get_job_suggestions_keyboard(jobs: list) -> InlineKeyboardMarkup:
     keyboard = []
-    for job in jobs[:8]:
-        keyboard.append([InlineKeyboardButton(job, callback_data=f"use_job_{job}")])
+    for i, job in enumerate(jobs[:8]):
+        keyboard.append([InlineKeyboardButton(job, callback_data=f"use_job_idx_{i}")])
     keyboard.append([InlineKeyboardButton("✏️ Ввести свою", callback_data="new_job")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -47,14 +47,14 @@ def get_vacancy_card_keyboard(vacancy_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("✅ Откликнуться", callback_data=f"apply_{vacancy_id}")],
         [InlineKeyboardButton("⏭️ Пропустить", callback_data=f"skip_{vacancy_id}")],
-        [InlineKeyboardButton("🔄 Перегенерировать", callback_data=f"regen_{vacancy_id}")],
         [InlineKeyboardButton("📄 Полностью", callback_data=f"full_{vacancy_id}")],
         [InlineKeyboardButton("✏️ Редактировать", callback_data=f"edit_{vacancy_id}")],
     ])
 
 def get_confirm_job_keyboard(job_title: str) -> InlineKeyboardMarkup:
+    safe_title = job_title[:50]
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(f"🔍 Искать: {job_title}", callback_data=f"use_job_{job_title}")],
+        [InlineKeyboardButton(f"🔍 Искать: {safe_title}", callback_data=f"use_job_{safe_title}")],
         [InlineKeyboardButton("✏️ Ввести новую", callback_data="new_job")],
         [InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")],
     ])
