@@ -4,3 +4,12 @@ data/
 logs/ 
 !logs/all.log 
 *.pyc 
+
+# cleanup 2026-09-29
+chrome_profiles/
+.venv/
+*.exe
+proxies.txt
+my_resume.txt
+code_dump*
+*.db
